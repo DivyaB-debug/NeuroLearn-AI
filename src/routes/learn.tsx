@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { generateStudyPlan } from "@/lib/learning.functions";
 import { TECHNIQUES, type TechniqueId } from "@/lib/ai-gateway";
 import { toast } from "sonner";
-import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand } from "lucide-react";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
@@ -97,7 +97,16 @@ function Learn() {
         {plan && (
           <div className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
             <article className="rounded-3xl border border-border bg-card p-7">
-              <p className="text-xs uppercase tracking-widest text-accent">{tech.label}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-widest text-accent">{tech.label}</p>
+                <Link
+                  to="/sign"
+                  search={{ text: topic.trim().slice(0, 60), tab: "spell" as const }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+                >
+                  <Hand className="h-3 w-3" /> Sign this topic
+                </Link>
+              </div>
               <div className="prose prose-base mt-3 max-w-none text-foreground prose-headings:font-display prose-headings:tracking-tight prose-strong:text-foreground prose-blockquote:border-l-accent prose-blockquote:text-foreground/80">
                 <ReactMarkdown>{plan.explanation}</ReactMarkdown>
               </div>
