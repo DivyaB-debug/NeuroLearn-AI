@@ -63,7 +63,7 @@ function SignPage() {
         </div>
 
         <div className="mt-8">
-          {tab === "learn" ? <LearnAlphabet /> : <FingerspellPlayer />}
+          {tab === "learn" ? <LearnAlphabet /> : <FingerspellPlayer initialText={search.text} />}
         </div>
       </section>
     </main>
@@ -100,8 +100,8 @@ function LearnAlphabet() {
   );
 }
 
-function FingerspellPlayer() {
-  const [text, setText] = useState("");
+function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
+  const [text, setText] = useState(initialText);
   const [playing, setPlaying] = useState(false);
   const [index, setIndex] = useState(0);
   const [speedMs, setSpeedMs] = useState(700);
