@@ -5,12 +5,19 @@ import { SignHand } from "@/components/SignHand";
 import { useAuth } from "@/lib/auth-context";
 import { Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
-export const Route = createFileRoute("/sign")({ component: SignPage });
+export const Route = createFileRoute("/sign")({
+  component: SignPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    text: typeof s.text === "string" ? s.text : "",
+    tab: s.tab === "spell" || s.tab === "learn" ? s.tab : undefined,
+  }),
+});
 
 function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"learn" | "spell">("learn");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<"learn" | "spell">(search.tab ?? (search.text ? "spell" : "learn"));
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
