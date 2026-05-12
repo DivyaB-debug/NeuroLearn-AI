@@ -22,9 +22,14 @@ function Landing() {
           <div className="h-8 w-8 rounded-full ember-gradient" />
           <span className="font-display text-xl font-semibold">Lumen</span>
         </div>
-        <Link to="/auth" className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-secondary">
-          Sign in
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/sign" className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:inline-flex">
+            Sign language
+          </Link>
+          <Link to="/auth" className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-secondary">
+            Sign in
+          </Link>
+        </div>
       </header>
 
       <section className="mx-auto max-w-6xl px-6 pt-12 pb-24">
