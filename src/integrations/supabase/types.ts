@@ -41,6 +41,78 @@ export type Database = {
         }
         Relationships: []
       }
+      sign_letter_progress: {
+        Row: {
+          created_at: string
+          id: string
+          last_practiced_at: string
+          letter: string
+          mastered: boolean
+          practice_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          letter: string
+          mastered?: boolean
+          practice_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          letter?: string
+          mastered?: boolean
+          practice_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sign_topic_progress: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          last_practiced_at: string
+          letters_completed: number
+          topic: string
+          topic_key: string
+          total_letters: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          letters_completed?: number
+          topic: string
+          topic_key: string
+          total_letters?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_practiced_at?: string
+          letters_completed?: number
+          topic?: string
+          topic_key?: string
+          total_letters?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
