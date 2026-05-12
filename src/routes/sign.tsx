@@ -1,9 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
 import { useAuth } from "@/lib/auth-context";
-import { Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight,
+  Sparkles, Check, Trophy,
+} from "lucide-react";
 
 export const Route = createFileRoute("/sign")({
   component: SignPage,
@@ -13,15 +18,42 @@ export const Route = createFileRoute("/sign")({
   }),
 });
 
+type LetterRow = { letter: string; mastered: boolean; practice_count: number };
+type TopicRow = {
+  topic: string; topic_key: string; total_letters: number;
+  letters_completed: number; completed: boolean; last_practiced_at: string;
+};
+
 function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const [tab, setTab] = useState<"learn" | "spell">(search.tab ?? (search.text ? "spell" : "learn"));
+  const [tab, setTab] = useState<"learn" | "spell" | "stats">(
+    search.tab ?? (search.text ? "spell" : "learn")
+  );
+
+  const [letters, setLetters] = useState<Record<string, LetterRow>>({});
+  const [topics, setTopics] = useState<TopicRow[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
+
+  const reload = useCallback(async () => {
+    if (!user) return;
+    const [{ data: lr }, { data: tr }] = await Promise.all([
+      supabase.from("sign_letter_progress").select("letter, mastered, practice_count").eq("user_id", user.id),
+      supabase.from("sign_topic_progress")
+        .select("topic, topic_key, total_letters, letters_completed, completed, last_practiced_at")
+        .eq("user_id", user.id).order("last_practiced_at", { ascending: false }).limit(20),
+    ]);
+    if (lr) setLetters(Object.fromEntries(lr.map((r) => [r.letter, r as LetterRow])));
+    if (tr) setTopics(tr as TopicRow[]);
+  }, [user]);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const masteredCount = Object.values(letters).filter((l) => l.mastered).length;
 
   return (
     <main className="min-h-screen bg-background grain">
@@ -44,45 +76,78 @@ function SignPage() {
         <h1 className="mt-4 font-display text-4xl md:text-5xl">Learn sign language — then learn anything in it.</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Start with the ASL alphabet. Once you're comfortable, drop in any word or concept and Lumen will
-          fingerspell it back to you, letter by letter, at the pace you choose.
+          fingerspell it back to you, letter by letter. Your progress is saved to your account.
         </p>
 
-        <div className="mt-8 inline-flex rounded-full border border-border bg-card p-1 text-sm">
-          <button
-            onClick={() => setTab("learn")}
-            className={`rounded-full px-4 py-1.5 transition ${tab === "learn" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Learn the alphabet
-          </button>
-          <button
-            onClick={() => setTab("spell")}
-            className={`rounded-full px-4 py-1.5 transition ${tab === "spell" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Sign a concept
-          </button>
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
+          <span className="rounded-full bg-secondary px-3 py-1">
+            <Trophy className="mr-1 inline h-3 w-3 text-accent" />
+            {masteredCount}/26 letters mastered
+          </span>
+          <span className="rounded-full bg-secondary px-3 py-1">
+            {topics.filter((t) => t.completed).length} topics completed
+          </span>
+        </div>
+
+        <div className="mt-6 inline-flex flex-wrap rounded-full border border-border bg-card p-1 text-sm">
+          {([["learn","Learn the alphabet"],["spell","Sign a concept"],["stats","My progress"]] as const).map(([k,label]) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`rounded-full px-4 py-1.5 transition ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="mt-8">
-          {tab === "learn" ? <LearnAlphabet /> : <FingerspellPlayer initialText={search.text} />}
+          {tab === "learn" && <LearnAlphabet letters={letters} userId={user?.id} onChange={reload} />}
+          {tab === "spell" && <FingerspellPlayer initialText={search.text} userId={user?.id} onSaved={reload} />}
+          {tab === "stats" && <StatsPanel letters={letters} topics={topics} />}
         </div>
       </section>
     </main>
   );
 }
 
-function LearnAlphabet() {
+function LearnAlphabet({
+  letters, userId, onChange,
+}: { letters: Record<string, LetterRow>; userId?: string; onChange: () => void }) {
+  const toggleMastered = async (letter: string) => {
+    if (!userId) return;
+    const current = letters[letter];
+    const next = !(current?.mastered);
+    const { error } = await supabase.from("sign_letter_progress").upsert({
+      user_id: userId, letter,
+      mastered: next,
+      practice_count: (current?.practice_count ?? 0) + (next ? 1 : 0),
+      last_practiced_at: new Date().toISOString(),
+    }, { onConflict: "user_id,letter" });
+    if (error) toast.error("Couldn't save progress");
+    else onChange();
+  };
+
   return (
     <div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {ASL_ALPHABET.map((l) => (
-          <article key={l.letter} className="rounded-2xl border border-border bg-card p-4">
-            <div className="flex justify-center">
-              <SignHand letter={l.letter} motion={l.motion} size="sm" />
-            </div>
-            <h3 className="mt-3 font-display text-xl">{l.letter}</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{l.shape}</p>
-          </article>
-        ))}
+        {ASL_ALPHABET.map((l) => {
+          const m = letters[l.letter]?.mastered;
+          return (
+            <article key={l.letter} className={`rounded-2xl border p-4 transition ${m ? "border-accent bg-accent/5" : "border-border bg-card"}`}>
+              <div className="flex justify-center">
+                <SignHand letter={l.letter} motion={l.motion} size="sm" />
+              </div>
+              <div className="mt-3 flex items-baseline justify-between">
+                <h3 className="font-display text-xl">{l.letter}</h3>
+                <button onClick={() => toggleMastered(l.letter)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+                    m ? "bg-accent text-accent-foreground" : "border border-border text-muted-foreground hover:bg-secondary"
+                  }`}>
+                  {m ? (<><Check className="h-3 w-3" /> Mastered</>) : "Mark learned"}
+                </button>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{l.shape}</p>
+            </article>
+          );
+        })}
       </div>
 
       <div className="mt-8 rounded-3xl border border-border bg-card p-6">
@@ -100,12 +165,16 @@ function LearnAlphabet() {
   );
 }
 
-function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
+function FingerspellPlayer({
+  initialText = "", userId, onSaved,
+}: { initialText?: string; userId?: string; onSaved: () => void }) {
   const [text, setText] = useState(initialText);
   const [playing, setPlaying] = useState(false);
   const [index, setIndex] = useState(0);
   const [speedMs, setSpeedMs] = useState(700);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxReachedRef = useRef(0);
+  const savedKeyRef = useRef<string>("");
 
   const letters = useMemo(() => {
     return text.toUpperCase().split("").map((ch) => {
@@ -115,12 +184,48 @@ function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
     });
   }, [text]);
 
+  const signableTotal = useMemo(
+    () => letters.filter((l) => l.letter !== " " && ASL_ALPHABET.some((a) => a.letter === l.letter)).length,
+    [letters]
+  );
+  const topicKey = text.trim().toUpperCase();
+
+  // reset progress tracking when text changes
+  useEffect(() => {
+    maxReachedRef.current = 0;
+    savedKeyRef.current = "";
+  }, [topicKey]);
+
+  // persist progress whenever the user advances further than before
+  useEffect(() => {
+    if (!userId || letters.length === 0 || !topicKey) return;
+    if (index <= maxReachedRef.current && savedKeyRef.current === topicKey) return;
+    maxReachedRef.current = Math.max(maxReachedRef.current, index);
+    savedKeyRef.current = topicKey;
+    const reachedSignable = letters
+      .slice(0, maxReachedRef.current + 1)
+      .filter((l) => l.letter !== " " && ASL_ALPHABET.some((a) => a.letter === l.letter)).length;
+    const completed = maxReachedRef.current >= letters.length - 1;
+    void supabase.from("sign_topic_progress").upsert({
+      user_id: userId,
+      topic: text.trim().slice(0, 200),
+      topic_key: topicKey,
+      total_letters: signableTotal,
+      letters_completed: reachedSignable,
+      completed,
+      last_practiced_at: new Date().toISOString(),
+    }, { onConflict: "user_id,topic_key" }).then(({ error }) => {
+      if (error) console.warn("save topic progress", error.message);
+      else if (completed) onSaved();
+    });
+  }, [index, letters, topicKey, signableTotal, text, userId, onSaved]);
+
   useEffect(() => {
     if (!playing) return;
-    if (index >= letters.length - 1) { setPlaying(false); return; }
+    if (index >= letters.length - 1) { setPlaying(false); onSaved(); return; }
     timer.current = setTimeout(() => setIndex((i) => i + 1), speedMs);
     return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [playing, index, letters.length, speedMs]);
+  }, [playing, index, letters.length, speedMs, onSaved]);
 
   const start = () => {
     if (letters.length === 0) return;
@@ -130,6 +235,7 @@ function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
   const reset = () => { setPlaying(false); setIndex(0); };
 
   const current = letters[index];
+  const progressPct = letters.length ? Math.round(((index + 1) / letters.length) * 100) : 0;
 
   return (
     <div className="rounded-3xl border border-border bg-card p-6 md:p-8">
@@ -145,84 +251,80 @@ function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
       />
 
       {letters.length > 0 && current && (
-        <div className="mt-8 grid items-center gap-8 md:grid-cols-[auto_1fr]">
-          <div key={index} className="animate-fade-in">
-            {current.letter === " " ? (
-              <div className="flex h-[260px] w-[260px] items-center justify-center rounded-3xl border border-dashed border-border text-muted-foreground">
-                · space ·
-              </div>
-            ) : (
-              <SignHand
-                letter={current.letter}
-                motion={"motion" in current ? (current as { motion?: string }).motion : undefined}
-                size="lg"
-              />
-            )}
+        <>
+          <div className="mt-4 h-1 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-accent transition-all" style={{ width: `${progressPct}%` }} />
           </div>
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">Letter {index + 1} of {letters.length}</p>
-            <h3 className="mt-1 font-display text-3xl">{current.letter === " " ? "(space)" : current.letter}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/90">{current.shape}</p>
 
-            {/* progress dots */}
-            <div className="mt-5 flex flex-wrap gap-1.5">
-              {letters.map((l, i) => (
-                <button
-                  key={i}
-                  onClick={() => { setPlaying(false); setIndex(i); }}
-                  className={`h-7 w-7 rounded-md text-[11px] font-semibold transition ${
-                    i === index ? "bg-accent text-accent-foreground"
-                    : i < index ? "bg-secondary text-foreground" : "bg-background text-muted-foreground border border-border"
-                  }`}
-                  aria-label={`Jump to letter ${l.letter}`}
-                >
-                  {l.letter === " " ? "·" : l.letter}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => { setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }}
-                className="rounded-full border border-border bg-background p-2 hover:bg-secondary"
-                aria-label="Previous letter"
-              ><ChevronLeft className="h-4 w-4" /></button>
-              {playing ? (
-                <button onClick={() => setPlaying(false)} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
-                  <Pause className="h-4 w-4" /> Pause
-                </button>
+          <div className="mt-6 grid items-center gap-8 md:grid-cols-[auto_1fr]">
+            <div key={index} className="animate-fade-in">
+              {current.letter === " " ? (
+                <div className="flex h-[260px] w-[260px] items-center justify-center rounded-3xl border border-dashed border-border text-muted-foreground">
+                  · space ·
+                </div>
               ) : (
-                <button onClick={start} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
-                  <Play className="h-4 w-4" /> Play
-                </button>
-              )}
-              <button
-                onClick={() => { setPlaying(false); setIndex((i) => Math.min(letters.length - 1, i + 1)); }}
-                className="rounded-full border border-border bg-background p-2 hover:bg-secondary"
-                aria-label="Next letter"
-              ><ChevronRight className="h-4 w-4" /></button>
-              <button onClick={reset} className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs hover:bg-secondary">
-                <RotateCcw className="h-3 w-3" /> Reset
-              </button>
-
-              <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
-                Speed
-                <input
-                  type="range" min={300} max={1500} step={100}
-                  value={speedMs}
-                  onChange={(e) => setSpeedMs(Number(e.target.value))}
-                  className="accent-accent"
+                <SignHand
+                  letter={current.letter}
+                  motion={"motion" in current ? (current as { motion?: string }).motion : undefined}
+                  size="lg"
                 />
-                <span className="tabular-nums">{(speedMs / 1000).toFixed(1)}s</span>
-              </label>
+              )}
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Letter {index + 1} of {letters.length}</p>
+              <h3 className="mt-1 font-display text-3xl">{current.letter === " " ? "(space)" : current.letter}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/90">{current.shape}</p>
+
+              <div className="mt-5 flex flex-wrap gap-1.5">
+                {letters.map((l, i) => (
+                  <button key={i} onClick={() => { setPlaying(false); setIndex(i); }}
+                    className={`h-7 w-7 rounded-md text-[11px] font-semibold transition ${
+                      i === index ? "bg-accent text-accent-foreground"
+                      : i < index ? "bg-secondary text-foreground" : "bg-background text-muted-foreground border border-border"
+                    }`}
+                    aria-label={`Jump to letter ${l.letter}`}>
+                    {l.letter === " " ? "·" : l.letter}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button onClick={() => { setPlaying(false); setIndex((i) => Math.max(0, i - 1)); }}
+                  className="rounded-full border border-border bg-background p-2 hover:bg-secondary" aria-label="Previous letter">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {playing ? (
+                  <button onClick={() => setPlaying(false)} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+                    <Pause className="h-4 w-4" /> Pause
+                  </button>
+                ) : (
+                  <button onClick={start} className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground">
+                    <Play className="h-4 w-4" /> Play
+                  </button>
+                )}
+                <button onClick={() => { setPlaying(false); setIndex((i) => Math.min(letters.length - 1, i + 1)); }}
+                  className="rounded-full border border-border bg-background p-2 hover:bg-secondary" aria-label="Next letter">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button onClick={reset} className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs hover:bg-secondary">
+                  <RotateCcw className="h-3 w-3" /> Reset
+                </button>
+
+                <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                  Speed
+                  <input type="range" min={300} max={1500} step={100} value={speedMs}
+                    onChange={(e) => setSpeedMs(Number(e.target.value))} className="accent-accent" />
+                  <span className="tabular-nums">{(speedMs / 1000).toFixed(1)}s</span>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {letters.length === 0 && (
         <p className="mt-8 text-sm text-muted-foreground">
-          Type any word above and press play. Lumen will fingerspell each letter at your chosen pace.
+          Type any word above and press play. Lumen will fingerspell each letter at your chosen pace, and your progress is saved automatically.
         </p>
       )}
 
@@ -230,6 +332,68 @@ function FingerspellPlayer({ initialText = "" }: { initialText?: string }) {
         Note: this module teaches ASL fingerspelling. Full lexical signs (whole-word gestures) require a 3D
         avatar or signed-video library and are on the roadmap.
       </p>
+    </div>
+  );
+}
+
+function StatsPanel({ letters, topics }: { letters: Record<string, LetterRow>; topics: TopicRow[] }) {
+  const masteredCount = Object.values(letters).filter((l) => l.mastered).length;
+  const completed = topics.filter((t) => t.completed);
+  const inProgress = topics.filter((t) => !t.completed);
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-3xl border border-border bg-card p-6">
+        <p className="text-xs uppercase tracking-widest text-accent">Alphabet mastery</p>
+        <p className="mt-2 font-display text-4xl">{masteredCount}<span className="text-muted-foreground text-2xl">/26</span></p>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
+          <div className="h-full bg-accent" style={{ width: `${(masteredCount / 26) * 100}%` }} />
+        </div>
+        <div className="mt-5 grid grid-cols-9 gap-1.5 sm:grid-cols-13">
+          {ASL_ALPHABET.map((l) => {
+            const r = letters[l.letter];
+            return (
+              <div key={l.letter}
+                className={`flex h-7 items-center justify-center rounded-md text-[11px] font-semibold ${
+                  r?.mastered ? "bg-accent text-accent-foreground" : "border border-border text-muted-foreground"
+                }`}
+                title={`${l.letter}${r ? ` · practiced ${r.practice_count}×` : ""}`}>
+                {l.letter}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-6">
+        <p className="text-xs uppercase tracking-widest text-accent">Topics</p>
+        <div className="mt-2 flex gap-6 text-sm">
+          <div><div className="font-display text-3xl">{completed.length}</div><div className="text-xs text-muted-foreground">completed</div></div>
+          <div><div className="font-display text-3xl">{inProgress.length}</div><div className="text-xs text-muted-foreground">in progress</div></div>
+        </div>
+        <ul className="mt-5 max-h-72 space-y-2 overflow-y-auto pr-1">
+          {topics.length === 0 && <li className="text-sm text-muted-foreground">No topics yet — try the "Sign a concept" tab.</li>}
+          {topics.map((t) => {
+            const pct = t.total_letters ? Math.round((t.letters_completed / t.total_letters) * 100) : 0;
+            return (
+              <li key={t.topic_key} className="rounded-2xl border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate text-sm font-medium">{t.topic}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${t.completed ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    {t.completed ? "Completed" : `${pct}%`}
+                  </span>
+                </div>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
+                  <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                </div>
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  {t.letters_completed}/{t.total_letters} letters · last {new Date(t.last_practiced_at).toLocaleDateString()}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }
