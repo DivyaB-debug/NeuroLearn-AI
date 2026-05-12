@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignRouteImport } from './routes/sign'
 import { Route as LearnRouteImport } from './routes/learn'
 import { Route as DiagnosticRouteImport } from './routes/diagnostic'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SignRoute = SignRouteImport.update({
+  id: '/sign',
+  path: '/sign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LearnRoute = LearnRouteImport.update({
   id: '/learn',
   path: '/learn',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
+  '/sign': typeof SignRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
+  '/sign': typeof SignRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
+  '/sign': typeof SignRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/diagnostic' | '/learn'
+  fullPaths: '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/diagnostic' | '/learn'
-  id: '__root__' | '/' | '/auth' | '/diagnostic' | '/learn'
+  to: '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
+  id: '__root__' | '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DiagnosticRoute: typeof DiagnosticRoute
   LearnRoute: typeof LearnRoute
+  SignRoute: typeof SignRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sign': {
+      id: '/sign'
+      path: '/sign'
+      fullPath: '/sign'
+      preLoaderRoute: typeof SignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learn': {
       id: '/learn'
       path: '/learn'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DiagnosticRoute: DiagnosticRoute,
   LearnRoute: LearnRoute,
+  SignRoute: SignRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
