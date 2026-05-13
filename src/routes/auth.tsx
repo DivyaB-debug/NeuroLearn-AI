@@ -26,6 +26,7 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const parsed = schema.safeParse({ email, password, name: mode === "signup" ? name : undefined });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
@@ -41,9 +42,16 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Check your email to confirm your account.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back.");
+        // Navigate immediately — don't wait for the auth listener / useEffect to fire,
+        // and check the profile here so we land on the right page even if context is still hydrating.
+        if (data.user) {
+          const { data: prof } = await supabase
+            .from("profiles").select("onboarded").eq("id", data.user.id).maybeSingle();
+          navigate({ to: prof?.onboarded ? "/learn" : "/diagnostic" });
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
