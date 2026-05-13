@@ -20,7 +20,7 @@ type DiagItem = {
 };
 
 function Diagnostic() {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, setOnboarded } = useAuth();
   const navigate = useNavigate();
   const runDiag = useServerFn(generateDiagnostic);
 
@@ -56,12 +56,7 @@ function Diagnostic() {
     const top = (sorted[0]?.[0] as TechniqueId) ?? items[0].technique;
     setWinner(top);
     setPhase("result");
-    if (user) {
-      const { error } = await supabase.from("profiles")
-        .update({ learning_style: top, onboarded: true }).eq("id", user.id);
-      if (error) toast.error("Couldn't save your style");
-      else await refreshProfile();
-    }
+    if (user) setOnboarded(top);
   };
 
   return (
