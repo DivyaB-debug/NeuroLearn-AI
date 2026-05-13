@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 
+type FakeUser = { id: string; name: string };
 type Profile = {
   id: string;
   display_name: string | null;
@@ -10,52 +9,92 @@ type Profile = {
 };
 
 type AuthCtx = {
-  user: User | null;
-  session: Session | null;
+  user: FakeUser | null;
+  session: null;
   profile: Profile | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  signInWithName: (name: string) => void;
+  setOnboarded: (style?: string | null) => void;
 };
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
+const STORAGE_KEY = "lumen.localUser";
+
+type Stored = { id: string; name: string; onboarded: boolean; learning_style: string | null };
+
+function load(): Stored | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function save(s: Stored | null) {
+  if (typeof window === "undefined") return;
+  if (s) localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  else localStorage.removeItem(STORAGE_KEY);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [stored, setStored] = useState<Stored | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (uid: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", uid).maybeSingle();
-    setProfile(data as Profile | null);
-  };
-
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        setTimeout(() => loadProfile(s.user.id), 0);
-      } else {
-        setProfile(null);
-      }
-    });
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) loadProfile(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    setStored(load());
+    setLoading(false);
   }, []);
 
+  const user: FakeUser | null = stored ? { id: stored.id, name: stored.name } : null;
+  const profile: Profile | null = stored
+    ? {
+        id: stored.id,
+        display_name: stored.name,
+        learning_style: stored.learning_style,
+        onboarded: stored.onboarded,
+      }
+    : null;
+
+  const signInWithName = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const existing = load();
+    const next: Stored = existing
+      ? { ...existing, name: trimmed }
+      : { id: crypto.randomUUID(), name: trimmed, onboarded: false, learning_style: null };
+    save(next);
+    setStored(next);
+  };
+
+  const setOnboarded = (style?: string | null) => {
+    const cur = load();
+    if (!cur) return;
+    const next = { ...cur, onboarded: true, learning_style: style ?? cur.learning_style };
+    save(next);
+    setStored(next);
+  };
+
   return (
-    <Ctx.Provider value={{
-      user, session, profile, loading,
-      refreshProfile: async () => { if (user) await loadProfile(user.id); },
-      signOut: async () => { await supabase.auth.signOut(); },
-    }}>
+    <Ctx.Provider
+      value={{
+        user,
+        session: null,
+        profile,
+        loading,
+        refreshProfile: async () => {},
+        signOut: async () => {
+          save(null);
+          setStored(null);
+        },
+        signInWithName,
+        setOnboarded,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
