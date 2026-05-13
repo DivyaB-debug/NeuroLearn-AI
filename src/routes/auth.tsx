@@ -26,6 +26,7 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const parsed = schema.safeParse({ email, password, name: mode === "signup" ? name : undefined });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setBusy(true);
@@ -41,9 +42,16 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Check your email to confirm your account.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back.");
+        // Navigate immediately — don't wait for the auth listener / useEffect to fire,
+        // and check the profile here so we land on the right page even if context is still hydrating.
+        if (data.user) {
+          const { data: prof } = await supabase
+            .from("profiles").select("onboarded").eq("id", data.user.id).maybeSingle();
+          navigate({ to: prof?.onboarded ? "/learn" : "/diagnostic" });
+        }
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -89,7 +97,7 @@ function AuthPage() {
               className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-accent" />
             <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password (6+ chars)" required
               className="w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none focus:border-accent" />
-            <button disabled={busy} className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={busy} className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
               {busy ? "…" : mode === "signup" ? "Create account" : "Sign in"}
             </button>
           </form>
