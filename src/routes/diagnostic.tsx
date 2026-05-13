@@ -20,7 +20,7 @@ type DiagItem = {
 };
 
 function Diagnostic() {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, setOnboarded } = useAuth();
   const navigate = useNavigate();
   const runDiag = useServerFn(generateDiagnostic);
 
