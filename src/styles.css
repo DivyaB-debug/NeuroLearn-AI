@@ -126,4 +126,33 @@
   .ember-gradient {
     background-image: linear-gradient(135deg, oklch(0.78 0.17 55) 0%, oklch(0.68 0.2 35) 100%);
   }
+
+  /* Sign-language motion clues */
+  @keyframes sign-trace {
+    0%   { stroke-dashoffset: var(--trace-len, 200); opacity: 0.95; }
+    80%  { stroke-dashoffset: 0; opacity: 0.95; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  .sign-trace {
+    stroke-dasharray: var(--trace-len, 200);
+    stroke-dashoffset: var(--trace-len, 200);
+    animation: sign-trace 1.6s ease-in-out infinite;
+  }
+  @keyframes sign-pulse {
+    0%   { transform: scale(0.6); opacity: 0.55; }
+    80%  { transform: scale(1.15); opacity: 0; }
+    100% { transform: scale(1.15); opacity: 0; }
+  }
+  .sign-pulse { animation: sign-pulse 1.4s ease-out infinite; }
+  @keyframes sign-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  .sign-bounce { animation: sign-bounce 0.9s ease-in-out infinite; }
+  @keyframes sign-arrow {
+    0%   { transform: translateX(-6px); opacity: 0.2; }
+    50%  { transform: translateX(0);    opacity: 1; }
+    100% { transform: translateX(6px);  opacity: 0.2; }
+  }
+  .sign-arrow { animation: sign-arrow 1.2s ease-in-out infinite; }
 }

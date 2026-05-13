@@ -266,6 +266,7 @@ function FingerspellPlayer({
                 <SignHand
                   letter={current.letter}
                   motion={"motion" in current ? (current as { motion?: string }).motion : undefined}
+                  repeat={index > 0 && letters[index - 1]?.letter === current.letter}
                   size="lg"
                 />
               )}
