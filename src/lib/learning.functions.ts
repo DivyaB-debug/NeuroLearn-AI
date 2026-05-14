@@ -39,12 +39,12 @@ export const generateDiagnostic = createServerFn({ method: "POST" })
         const { object } = await generateObject({
           model,
           schema: diagItemSchema,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
           temperature: 0.7,
           prompt: `Explain the topic "${data.topic}" using the "${t.label}" teaching technique (${t.blurb}).
 
 Rules:
-- "explanation": 90-140 words, FULLY committed to that style. ${
+- "explanation": 220-320 words, FULLY committed to that style. Cover the concept thoroughly — definition, why it matters, the core mechanism, and at least one concrete example. Don't be shallow. ${
             techniqueId === "socratic" ? "Use probing questions and answer them." :
             techniqueId === "mnemonic" ? "Include a real memory device, acronym, or rhyme." :
             techniqueId === "feynman" ? "No jargon — explain like to a smart 12-year-old." :
@@ -71,45 +71,49 @@ Rules:
 
 const planSchema = z.object({
   explanation: z.string(),
-  keyTakeaways: z.array(z.string()).min(3).max(6),
+  keyTakeaways: z.array(z.string()).min(4).max(10),
   pomodoroPlan: z.array(z.object({
     block: z.number().int().min(1),
     focusMinutes: z.number().int(),
     breakMinutes: z.number().int(),
     task: z.string(),
-  })).min(3).max(6),
-  practiceQuestions: z.array(z.string()).min(3).max(5),
+  })).min(3).max(8),
+  practiceQuestions: z.array(z.string()).min(4).max(8),
 });
 
 // --- Generate a study plan + explanation in user's chosen style ---
 export const generateStudyPlan = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
-      topic: z.string().trim().min(2).max(500),
+      topic: z.string().trim().min(2).max(2000),
       style: z.enum(techniqueIds),
     }).parse(d)
   )
   .handler(async ({ data }) => {
     const model = getModel();
     const technique = TECHNIQUES.find((t) => t.id === data.style)!;
+    // Scale depth with topic size — a single concept gets ~700 words,
+    // a full syllabus gets a thorough multi-section deep-dive.
+    const big = data.topic.length > 180;
+    const wordTarget = big ? "900-1500 words" : "500-900 words";
     try {
       const { object } = await generateObject({
         model,
         schema: planSchema,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         temperature: 0.75,
         prompt: `Learner's preferred technique: ${technique.label} — ${technique.blurb}
 
 Syllabus / topic from learner:
 """${data.topic}"""
 
-1) "explanation": Explain the topic FULLY in the ${technique.label} style. Use rich markdown (headings, bold, lists, blockquotes). 250-450 words. Commit to the style.
+1) "explanation": Explain the topic FULLY and DEEPLY in the ${technique.label} style. Use rich markdown — H2/H3 headings to break sections, bold, bullet lists, numbered steps, blockquotes for insights, and short worked examples or mini-scenarios. Target ${wordTarget}. ${big ? "Because the learner pasted a large topic, break it into clearly labeled sub-sections (one per sub-topic) and cover each thoroughly — do NOT summarize, teach it." : "Cover: intuition, formal definition, the core mechanism step by step, a concrete worked example, common pitfalls, and how it connects to related ideas."} Commit fully to the ${technique.label} style throughout — don't drift into a generic textbook tone.
 
-2) "keyTakeaways": 3-5 short bullets.
+2) "keyTakeaways": 4-8 punchy bullets a learner should remember.
 
-3) "pomodoroPlan": 3-5 blocks. 25 min focus / 5 min break, with a 15-min break after the 4th. Each block has a specific task tied to the topic.
+3) "pomodoroPlan": 3-6 blocks. 25 min focus / 5 min break, with a 15-min break after the 4th. Each block has a SPECIFIC task tied to a sub-section of the topic above.
 
-4) "practiceQuestions": 3-5 self-test questions.`,
+4) "practiceQuestions": 4-8 self-test questions ranging from recall to application.`,
       });
       return object;
     } catch (err) {

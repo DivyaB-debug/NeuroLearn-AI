@@ -7,6 +7,7 @@ import { generateStudyPlan } from "@/lib/learning.functions";
 import { TECHNIQUES, type TechniqueId } from "@/lib/ai-gateway";
 import { toast } from "sonner";
 import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand } from "lucide-react";
+import { SignTeacher } from "@/components/SignTeacher";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
@@ -132,6 +133,10 @@ function Learn() {
             </article>
 
             <aside className="space-y-4">
+              <SignTeacher
+                text={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
+                title="Lesson in sign language"
+              />
               <div className="rounded-3xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2">
                   <Timer className="h-4 w-4 text-accent" />
