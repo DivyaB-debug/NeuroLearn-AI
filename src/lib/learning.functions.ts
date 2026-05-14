@@ -39,12 +39,12 @@ export const generateDiagnostic = createServerFn({ method: "POST" })
         const { object } = await generateObject({
           model,
           schema: diagItemSchema,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
           temperature: 0.7,
           prompt: `Explain the topic "${data.topic}" using the "${t.label}" teaching technique (${t.blurb}).
 
 Rules:
-- "explanation": 90-140 words, FULLY committed to that style. ${
+- "explanation": 220-320 words, FULLY committed to that style. Cover the concept thoroughly — definition, why it matters, the core mechanism, and at least one concrete example. Don't be shallow. ${
             techniqueId === "socratic" ? "Use probing questions and answer them." :
             techniqueId === "mnemonic" ? "Include a real memory device, acronym, or rhyme." :
             techniqueId === "feynman" ? "No jargon — explain like to a smart 12-year-old." :
