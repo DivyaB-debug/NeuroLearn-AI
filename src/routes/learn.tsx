@@ -7,6 +7,7 @@ import { generateStudyPlan } from "@/lib/learning.functions";
 import { TECHNIQUES, type TechniqueId } from "@/lib/ai-gateway";
 import { toast } from "sonner";
 import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand } from "lucide-react";
+import { SignTeacher } from "@/components/SignTeacher";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
