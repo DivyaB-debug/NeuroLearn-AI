@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  loadSignProgress,
+  toggleLetterMastered,
+  saveTopicProgress,
+  type LetterRow,
+  type TopicRow,
+} from "@/lib/sign-progress";
 import { toast } from "sonner";
 import {
   Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight,
