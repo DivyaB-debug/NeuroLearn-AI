@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  loadSignProgress,
+  toggleLetterMastered,
+  saveTopicProgress,
+  type LetterRow,
+  type TopicRow,
+} from "@/lib/sign-progress";
 import { toast } from "sonner";
 import {
   Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight,
@@ -18,11 +24,6 @@ export const Route = createFileRoute("/sign")({
   }),
 });
 
-type LetterRow = { letter: string; mastered: boolean; practice_count: number };
-type TopicRow = {
-  topic: string; topic_key: string; total_letters: number;
-  letters_completed: number; completed: boolean; last_practiced_at: string;
-};
 
 function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
@@ -39,16 +40,11 @@ function SignPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(() => {
     if (!user) return;
-    const [{ data: lr }, { data: tr }] = await Promise.all([
-      supabase.from("sign_letter_progress").select("letter, mastered, practice_count").eq("user_id", user.id),
-      supabase.from("sign_topic_progress")
-        .select("topic, topic_key, total_letters, letters_completed, completed, last_practiced_at")
-        .eq("user_id", user.id).order("last_practiced_at", { ascending: false }).limit(20),
-    ]);
-    if (lr) setLetters(Object.fromEntries(lr.map((r) => [r.letter, r as LetterRow])));
-    if (tr) setTopics(tr as TopicRow[]);
+    const { letters: l, topics: t } = loadSignProgress(user.id);
+    setLetters(l);
+    setTopics(t);
   }, [user]);
 
   useEffect(() => { void reload(); }, [reload]);
@@ -111,18 +107,14 @@ function SignPage() {
 function LearnAlphabet({
   letters, userId, onChange,
 }: { letters: Record<string, LetterRow>; userId?: string; onChange: () => void }) {
-  const toggleMastered = async (letter: string) => {
+  const toggleMastered = (letter: string) => {
     if (!userId) return;
-    const current = letters[letter];
-    const next = !(current?.mastered);
-    const { error } = await supabase.from("sign_letter_progress").upsert({
-      user_id: userId, letter,
-      mastered: next,
-      practice_count: (current?.practice_count ?? 0) + (next ? 1 : 0),
-      last_practiced_at: new Date().toISOString(),
-    }, { onConflict: "user_id,letter" });
-    if (error) toast.error("Couldn't save progress");
-    else onChange();
+    try {
+      toggleLetterMastered(userId, letter);
+      onChange();
+    } catch {
+      toast.error("Couldn't save progress");
+    }
   };
 
   return (
@@ -206,18 +198,18 @@ function FingerspellPlayer({
       .slice(0, maxReachedRef.current + 1)
       .filter((l) => l.letter !== " " && ASL_ALPHABET.some((a) => a.letter === l.letter)).length;
     const completed = maxReachedRef.current >= letters.length - 1;
-    void supabase.from("sign_topic_progress").upsert({
-      user_id: userId,
-      topic: text.trim().slice(0, 200),
-      topic_key: topicKey,
-      total_letters: signableTotal,
-      letters_completed: reachedSignable,
-      completed,
-      last_practiced_at: new Date().toISOString(),
-    }, { onConflict: "user_id,topic_key" }).then(({ error }) => {
-      if (error) console.warn("save topic progress", error.message);
-      else if (completed) onSaved();
-    });
+    try {
+      saveTopicProgress(userId, {
+        topic: text.trim().slice(0, 200),
+        topic_key: topicKey,
+        total_letters: signableTotal,
+        letters_completed: reachedSignable,
+        completed,
+      });
+      if (completed) onSaved();
+    } catch (err) {
+      console.warn("save topic progress", err);
+    }
   }, [index, letters, topicKey, signableTotal, text, userId, onSaved]);
 
   useEffect(() => {
