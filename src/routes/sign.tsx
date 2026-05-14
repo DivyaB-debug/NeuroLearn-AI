@@ -24,8 +24,6 @@ export const Route = createFileRoute("/sign")({
   }),
 });
 
-type LetterRowLocal = LetterRow;
-type TopicRowLocal = TopicRow;
 
 function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
