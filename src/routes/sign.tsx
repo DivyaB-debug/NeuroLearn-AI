@@ -24,11 +24,8 @@ export const Route = createFileRoute("/sign")({
   }),
 });
 
-type LetterRow = { letter: string; mastered: boolean; practice_count: number };
-type TopicRow = {
-  topic: string; topic_key: string; total_letters: number;
-  letters_completed: number; completed: boolean; last_practiced_at: string;
-};
+type LetterRowLocal = LetterRow;
+type TopicRowLocal = TopicRow;
 
 function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
