@@ -200,18 +200,18 @@ function FingerspellPlayer({
       .slice(0, maxReachedRef.current + 1)
       .filter((l) => l.letter !== " " && ASL_ALPHABET.some((a) => a.letter === l.letter)).length;
     const completed = maxReachedRef.current >= letters.length - 1;
-    void supabase.from("sign_topic_progress").upsert({
-      user_id: userId,
-      topic: text.trim().slice(0, 200),
-      topic_key: topicKey,
-      total_letters: signableTotal,
-      letters_completed: reachedSignable,
-      completed,
-      last_practiced_at: new Date().toISOString(),
-    }, { onConflict: "user_id,topic_key" }).then(({ error }) => {
-      if (error) console.warn("save topic progress", error.message);
-      else if (completed) onSaved();
-    });
+    try {
+      saveTopicProgress(userId, {
+        topic: text.trim().slice(0, 200),
+        topic_key: topicKey,
+        total_letters: signableTotal,
+        letters_completed: reachedSignable,
+        completed,
+      });
+      if (completed) onSaved();
+    } catch (err) {
+      console.warn("save topic progress", err);
+    }
   }, [index, letters, topicKey, signableTotal, text, userId, onSaved]);
 
   useEffect(() => {
