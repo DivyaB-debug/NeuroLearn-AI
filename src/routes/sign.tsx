@@ -42,16 +42,11 @@ function SignPage() {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(() => {
     if (!user) return;
-    const [{ data: lr }, { data: tr }] = await Promise.all([
-      supabase.from("sign_letter_progress").select("letter, mastered, practice_count").eq("user_id", user.id),
-      supabase.from("sign_topic_progress")
-        .select("topic, topic_key, total_letters, letters_completed, completed, last_practiced_at")
-        .eq("user_id", user.id).order("last_practiced_at", { ascending: false }).limit(20),
-    ]);
-    if (lr) setLetters(Object.fromEntries(lr.map((r) => [r.letter, r as LetterRow])));
-    if (tr) setTopics(tr as TopicRow[]);
+    const { letters: l, topics: t } = loadSignProgress(user.id);
+    setLetters(l);
+    setTopics(t);
   }, [user]);
 
   useEffect(() => { void reload(); }, [reload]);
