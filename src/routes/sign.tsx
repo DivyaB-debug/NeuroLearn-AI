@@ -109,18 +109,14 @@ function SignPage() {
 function LearnAlphabet({
   letters, userId, onChange,
 }: { letters: Record<string, LetterRow>; userId?: string; onChange: () => void }) {
-  const toggleMastered = async (letter: string) => {
+  const toggleMastered = (letter: string) => {
     if (!userId) return;
-    const current = letters[letter];
-    const next = !(current?.mastered);
-    const { error } = await supabase.from("sign_letter_progress").upsert({
-      user_id: userId, letter,
-      mastered: next,
-      practice_count: (current?.practice_count ?? 0) + (next ? 1 : 0),
-      last_practiced_at: new Date().toISOString(),
-    }, { onConflict: "user_id,letter" });
-    if (error) toast.error("Couldn't save progress");
-    else onChange();
+    try {
+      toggleLetterMastered(userId, letter);
+      onChange();
+    } catch {
+      toast.error("Couldn't save progress");
+    }
   };
 
   return (
