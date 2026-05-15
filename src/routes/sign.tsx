@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ASL_ALPHABET, SIGN_TIPS } from "@/lib/sign-language";
+import { ASL_ALPHABET, SIGN_TIPS, COMMON_SIGNS, type SignWord } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 import {
   Hand, Play, Pause, RotateCcw, ChevronLeft, ChevronRight,
-  Sparkles, Check, Trophy,
+  Sparkles, Check, Trophy, BookOpen,
 } from "lucide-react";
 
 export const Route = createFileRoute("/sign")({
@@ -29,7 +29,7 @@ function SignPage() {
   const { user, loading, signOut, profile } = useAuth();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const [tab, setTab] = useState<"learn" | "spell" | "stats">(
+  const [tab, setTab] = useState<"learn" | "words" | "spell" | "stats">(
     search.tab ?? (search.text ? "spell" : "learn")
   );
 
@@ -86,7 +86,12 @@ function SignPage() {
         </div>
 
         <div className="mt-6 inline-flex flex-wrap rounded-full border border-border bg-card p-1 text-sm">
-          {([["learn","Learn the alphabet"],["spell","Sign a concept"],["stats","My progress"]] as const).map(([k,label]) => (
+          {([
+            ["learn","Learn the alphabet"],
+            ["words","Common signs"],
+            ["spell","Sign a concept"],
+            ["stats","My progress"],
+          ] as const).map(([k,label]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`rounded-full px-4 py-1.5 transition ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
               {label}
@@ -96,6 +101,7 @@ function SignPage() {
 
         <div className="mt-8">
           {tab === "learn" && <LearnAlphabet letters={letters} userId={user?.id} onChange={reload} />}
+          {tab === "words" && <CommonSignsPanel />}
           {tab === "spell" && <FingerspellPlayer initialText={search.text} userId={user?.id} onSaved={reload} />}
           {tab === "stats" && <StatsPanel letters={letters} topics={topics} />}
         </div>
