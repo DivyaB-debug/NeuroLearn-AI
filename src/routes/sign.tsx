@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS, COMMON_SIGNS, type SignWord } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
+import { WordSignLesson } from "@/components/WordSignLesson";
 import { useAuth } from "@/lib/auth-context";
 import {
   loadSignProgress,
