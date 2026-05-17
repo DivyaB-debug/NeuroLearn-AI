@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS, COMMON_SIGNS, type SignWord } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
+import { WordSignLesson } from "@/components/WordSignLesson";
 import { useAuth } from "@/lib/auth-context";
 import {
   loadSignProgress,
@@ -456,51 +457,50 @@ function CommonSignsPanel() {
         </div>
       </aside>
 
-      <article className="rounded-3xl border border-border bg-card p-7">
-        <p className="text-xs uppercase tracking-widest text-accent">{active.category}</p>
-        <h3 className="mt-1 font-display text-4xl">{active.word}</h3>
+      <article className="space-y-6">
+        <div className="rounded-3xl border border-border bg-card p-7">
+          <p className="text-xs uppercase tracking-widest text-accent">{active.category}</p>
+          <h3 className="mt-1 font-display text-4xl">{active.word}</h3>
 
-        <div className="mt-6 grid items-center gap-6 sm:grid-cols-[auto_1fr]">
-          <div className="flex justify-center">
-            {shape ? (
-              <SignHand letter={shape} size="lg" />
-            ) : (
-              <div className="flex h-[260px] w-[260px] items-center justify-center rounded-3xl border border-dashed border-border text-muted-foreground">
-                Whole-body sign
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="text-xs uppercase tracking-widest text-muted-foreground">How to sign it</p>
-            <p className="mt-2 text-base leading-relaxed text-foreground/90">{active.description}</p>
-
-            {active.handshapes && active.handshapes.length > 0 && (
-              <div className="mt-5">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Handshapes used</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {active.handshapes.map((h, i) => (
-                    <button
-                      key={`${h}-${i}`}
-                      onClick={() => setStep(i)}
-                      className={`flex items-center gap-2 rounded-2xl border p-2 transition ${
-                        i === step ? "border-accent bg-accent/5" : "border-border bg-background hover:bg-secondary"
-                      }`}
-                      aria-label={`Show handshape ${h}`}
-                    >
-                      <SignHand letter={h} size="sm" />
-                      <span className="pr-2 font-display text-lg">{h}</span>
-                    </button>
-                  ))}
+          <div className="mt-6 grid items-center gap-6 sm:grid-cols-[auto_1fr]">
+            <div className="flex justify-center">
+              {shape ? (
+                <SignHand letter={shape} size="lg" />
+              ) : (
+                <div className="flex h-[260px] w-[260px] items-center justify-center rounded-3xl border border-dashed border-border text-muted-foreground">
+                  Whole-body sign
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">How to sign it</p>
+              <p className="mt-2 text-base leading-relaxed text-foreground/90">{active.description}</p>
 
-            <p className="mt-5 rounded-2xl bg-secondary/60 p-3 text-xs text-muted-foreground">
-              Tip: ASL signs combine handshape, location, movement, and facial expression. Practice the
-              described motion in a mirror — the handshape image shows the dominant shape used in the sign.
-            </p>
+              {active.handshapes && active.handshapes.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Handshapes used</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {active.handshapes.map((h, i) => (
+                      <button
+                        key={`${h}-${i}`}
+                        onClick={() => setStep(i)}
+                        className={`flex items-center gap-2 rounded-2xl border p-2 transition ${
+                          i === step ? "border-accent bg-accent/5" : "border-border bg-background hover:bg-secondary"
+                        }`}
+                        aria-label={`Show handshape ${h}`}
+                      >
+                        <SignHand letter={h} size="sm" />
+                        <span className="pr-2 font-display text-lg">{h}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        <WordSignLesson sign={active} />
       </article>
     </div>
   );
