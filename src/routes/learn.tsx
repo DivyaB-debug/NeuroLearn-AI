@@ -6,8 +6,9 @@ import { useAuth } from "@/lib/auth-context";
 import { generateStudyPlan } from "@/lib/learning.functions";
 import { TECHNIQUES, type TechniqueId } from "@/lib/ai-gateway";
 import { toast } from "sonner";
-import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand } from "lucide-react";
+import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand, Upload } from "lucide-react";
 import { SignTeacher } from "@/components/SignTeacher";
+import { VisualStoryLesson } from "@/components/VisualStoryLesson";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
@@ -81,11 +82,36 @@ function Learn() {
               placeholder="e.g. Chapter 4: Ohm's law and Kirchhoff's rules"
               className="flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm outline-none focus:border-accent"
             />
-            <button onClick={submit} disabled={busy}
-              className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Teach me →"}
-            </button>
+            <div className="flex gap-2 sm:flex-col">
+              <label className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border border-border px-4 py-2 text-xs hover:bg-secondary">
+                <Upload className="h-3 w-3" /> File
+                <input
+                  type="file"
+                  accept=".txt,.md,.markdown,.csv,.json,.html,.rtf,text/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 1_500_000) { toast.error("File too large (max 1.5MB)"); return; }
+                    try {
+                      const text = await f.text();
+                      setTopic(`From "${f.name}":\n\n${text.slice(0, 8000)}`);
+                      toast.success(`Loaded ${f.name}`);
+                    } catch { toast.error("Couldn't read file"); }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <button onClick={submit} disabled={busy}
+                className="inline-flex flex-1 items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Teach me →"}
+              </button>
+            </div>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Upload a .txt / .md / .csv / .json / .html file — I'll teach its contents in your <span className="text-accent">{tech.label}</span> style.
+          </p>
+
         </section>
 
         {busy && (
@@ -133,6 +159,8 @@ function Learn() {
             </article>
 
             <aside className="space-y-4">
+              <VisualStoryLesson topic={topic.trim()} />
+
               <SignTeacher
                 text={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
                 title="Lesson in sign language"

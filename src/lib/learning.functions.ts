@@ -123,3 +123,42 @@ Syllabus / topic from learner:
       throw err;
     }
   });
+
+// --- Visual story planner: turn a topic into 4 scene prompts + captions ---
+const storySchema = z.object({
+  title: z.string(),
+  scenes: z.array(z.object({
+    caption: z.string(),
+    imagePrompt: z.string(),
+  })).min(3).max(5),
+});
+
+export const generateVisualStory = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ topic: z.string().trim().min(2).max(2000) }).parse(d)
+  )
+  .handler(async ({ data }) => {
+    const model = getModel();
+    try {
+      const { object } = await generateObject({
+        model,
+        schema: storySchema,
+        maxOutputTokens: 2048,
+        temperature: 0.8,
+        prompt: `Design a 4-scene visual story that teaches: "${data.topic}".
+
+Each scene must:
+- "caption": 1-2 sentences (max 220 chars) — narrative voice, teaches a single beat of the concept. Scenes connect into a story arc (setup → mechanism → example → payoff).
+- "imagePrompt": a detailed visual description (40-80 words) for an AI illustrator. Concrete subjects, setting, lighting, mood. NO text/labels in the image. Consistent art style across scenes (specify it, e.g. "soft gouache illustration", "isometric 3D render", "minimal flat vector"). Pick ONE style and reuse it in every imagePrompt.
+
+Title should be short and evocative.`,
+      });
+      return object;
+    } catch (err) {
+      if (NoObjectGeneratedError.isInstance(err)) {
+        throw new Error("Couldn't plan the visual story — try a more specific topic.");
+      }
+      throw err;
+    }
+  });
+
