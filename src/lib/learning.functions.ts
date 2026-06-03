@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateObject, NoObjectGeneratedError } from "ai";
+import { generateObject, generateText, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider, TECHNIQUES } from "./ai-gateway";
 
@@ -24,6 +24,63 @@ const diagItemSchema = z.object({
   choices: z.array(z.string()).length(4),
   correctIndex: z.number().int().min(0).max(3),
 });
+
+const looseTextItemSchema = z.union([
+  z.string(),
+  z.object({
+    text: z.string().optional(),
+    title: z.string().optional(),
+    value: z.string().optional(),
+    question: z.string().optional(),
+    prompt: z.string().optional(),
+    task: z.string().optional(),
+    activity: z.string().optional(),
+    description: z.string().optional(),
+    summary: z.string().optional(),
+    content: z.string().optional(),
+  }).passthrough(),
+]);
+
+const cleanText = (value: unknown) => {
+  if (typeof value === "string") return value.replace(/\s+/g, " ").trim();
+  if (!value || typeof value !== "object") return "";
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["text", "title", "value", "question", "prompt", "task", "activity", "description", "summary", "content"]) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.replace(/\s+/g, " ").trim();
+    }
+  }
+
+  return Object.values(record)
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .join(" — ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const numericValue = (value: unknown, fallback: number) => {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === "string") {
+    const match = value.match(/\d+/);
+    if (match) return Number.parseInt(match[0], 10);
+  }
+  return fallback;
+};
+
+const ensureList = (items: unknown[], minimum: number, fallback: (index: number) => string) => {
+  const cleaned = items
+    .map((item) => cleanText(item))
+    .filter(Boolean)
+    .slice(0, 10);
+
+  while (cleaned.length < minimum) {
+    cleaned.push(fallback(cleaned.length));
+  }
+
+  return cleaned;
+};
 
 // --- Diagnostic: explain a topic in 6 techniques + comprehension MCQ each ---
 // Runs each technique as its own model call in parallel — much more reliable
