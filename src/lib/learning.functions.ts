@@ -38,8 +38,10 @@ const looseTextItemSchema = z.union([
     description: z.string().optional(),
     summary: z.string().optional(),
     content: z.string().optional(),
-  }).passthrough(),
+  }),
 ]);
+
+const looseNumberSchema = z.union([z.number(), z.string()]);
 
 const cleanText = (value: unknown) => {
   if (typeof value === "string") return value.replace(/\s+/g, " ").trim();
@@ -131,9 +133,9 @@ const planSchema = z.object({
   keyTakeaways: z.array(looseTextItemSchema).min(3).max(10),
   pomodoroPlan: z.array(z.object({
     block: z.number().int().min(1),
-    focusMinutes: z.number().int().optional(),
-    breakMinutes: z.number().int().optional(),
-    task: z.string(),
+    focusMinutes: looseNumberSchema.optional(),
+    breakMinutes: looseNumberSchema.optional(),
+    task: looseTextItemSchema,
   })).min(2).max(8),
   practiceQuestions: z.array(looseTextItemSchema).min(3).max(10),
 });
