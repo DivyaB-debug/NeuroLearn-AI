@@ -46,7 +46,11 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
               next[i] = { ...next[i], img: `data:image/png;base64,${data.b64}` };
               return next;
             });
-            setImgLoaded((n) => n + 1);
+            setImgLoaded((n) => {
+              const k = n + 1;
+              if (k === 1) setPlaying(true); // start the "video" as soon as scene 1 lands
+              return k;
+            });
           } catch (e) {
             console.error("scene", i, e);
           }
