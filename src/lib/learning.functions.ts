@@ -272,20 +272,36 @@ Syllabus / topic from learner:
 
     try {
       const { object } = await tryGenerate(true);
-      return object;
+      return normalizePlan(object, topic, technique.label);
     } catch (err) {
-      // Most NoObjectGenerated errors here are token-cap / schema-validation
-      // misses on long outputs. Retry once with a tighter, faster config.
       if (NoObjectGeneratedError.isInstance(err)) {
         try {
           const { object } = await tryGenerate(false);
-          return object;
+          return normalizePlan(object, topic, technique.label);
         } catch (err2) {
           console.error("generateStudyPlan retry failed:", err2);
-          throw new Error("Couldn't compose the lesson — try a shorter or more specific topic.");
+
+          try {
+            const provider = createLovableAiGatewayProvider(key);
+            const model = provider("google/gemini-2.5-flash-lite");
+            const { text } = await generateText({
+              model,
+              temperature: 0.5,
+              maxOutputTokens: 4096,
+              prompt: `${buildPrompt(false)}\n\nReturn only valid JSON with this shape:\n{\n  "explanation": string,\n  "keyTakeaways": string[],\n  "pomodoroPlan": [{"block": number, "focusMinutes": number, "breakMinutes": number, "task": string}],\n  "practiceQuestions": string[]\n}`,
+            });
+
+            const parsed = planSchema.parse(JSON.parse(extractJsonObject(text)));
+            return normalizePlan(parsed, topic, technique.label);
+          } catch (repairError) {
+            console.error("generateStudyPlan text fallback failed:", repairError);
+            return buildEmergencyPlan(topic, technique.label);
+          }
         }
       }
-      throw err;
+
+      console.error("generateStudyPlan primary failure:", err);
+      return buildEmergencyPlan(topic, technique.label);
     }
   });
 
