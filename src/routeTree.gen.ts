@@ -14,6 +14,7 @@ import { Route as LearnRouteImport } from './routes/learn'
 import { Route as DiagnosticRouteImport } from './routes/diagnostic'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiLessonImageRouteImport } from './routes/api/lesson-image'
 
 const SignRoute = SignRouteImport.update({
   id: '/sign',
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLessonImageRoute = ApiLessonImageRouteImport.update({
+  id: '/api/lesson-image',
+  path: '/api/lesson-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
   '/sign': typeof SignRoute
+  '/api/lesson-image': typeof ApiLessonImageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
   '/sign': typeof SignRoute
+  '/api/lesson-image': typeof ApiLessonImageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/diagnostic': typeof DiagnosticRoute
   '/learn': typeof LearnRoute
   '/sign': typeof SignRoute
+  '/api/lesson-image': typeof ApiLessonImageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/diagnostic'
+    | '/learn'
+    | '/sign'
+    | '/api/lesson-image'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
-  id: '__root__' | '/' | '/auth' | '/diagnostic' | '/learn' | '/sign'
+  to: '/' | '/auth' | '/diagnostic' | '/learn' | '/sign' | '/api/lesson-image'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/diagnostic'
+    | '/learn'
+    | '/sign'
+    | '/api/lesson-image'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +99,7 @@ export interface RootRouteChildren {
   DiagnosticRoute: typeof DiagnosticRoute
   LearnRoute: typeof LearnRoute
   SignRoute: typeof SignRoute
+  ApiLessonImageRoute: typeof ApiLessonImageRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +139,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lesson-image': {
+      id: '/api/lesson-image'
+      path: '/api/lesson-image'
+      fullPath: '/api/lesson-image'
+      preLoaderRoute: typeof ApiLessonImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,7 +155,18 @@ const rootRouteChildren: RootRouteChildren = {
   DiagnosticRoute: DiagnosticRoute,
   LearnRoute: LearnRoute,
   SignRoute: SignRoute,
+  ApiLessonImageRoute: ApiLessonImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
