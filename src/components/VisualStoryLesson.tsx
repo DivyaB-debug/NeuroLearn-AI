@@ -59,6 +59,15 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
     }
   };
 
+  // Auto-build when a new topic arrives — don't make the user hunt for a button.
+  useEffect(() => {
+    const t = topic.trim();
+    if (!t || t === lastTopicRef.current || busy) return;
+    lastTopicRef.current = t;
+    void build();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topic]);
+
   // Auto-advance "video" playback through scenes (5s each).
   useEffect(() => {
     if (!playing || scenes.length === 0) return;
