@@ -15,6 +15,7 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
   const [playing, setPlaying] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(0);
   const tickRef = useRef<number | null>(null);
+  const lastTopicRef = useRef<string>("");
 
   const build = async () => {
     if (!topic.trim()) { toast.error("Type a topic first"); return; }
