@@ -150,7 +150,19 @@ const normalizedPlanSchema = z.object({
   practiceQuestions: z.array(z.string()).min(3).max(10),
 });
 
-const normalizePlan = (raw: z.infer<typeof planSchema>, topic: string, techniqueLabel: string) => {
+type NormalizedPlan = z.infer<typeof normalizedPlanSchema>;
+
+const extractJsonObject = (text: string) => {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+  if (fenced) return fenced.trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) return text.slice(start, end + 1);
+  return text.trim();
+};
+
+const normalizePlan = (raw: z.infer<typeof planSchema>, topic: string, techniqueLabel: string): NormalizedPlan => {
   const takeaways = ensureList(
     raw.keyTakeaways,
     3,
@@ -190,6 +202,28 @@ const normalizePlan = (raw: z.infer<typeof planSchema>, topic: string, technique
     pomodoroPlan: blocks,
     practiceQuestions: questions,
   });
+};
+
+const buildEmergencyPlan = (topic: string, techniqueLabel: string): NormalizedPlan => {
+  const shortTopic = topic.slice(0, 120);
+
+  return {
+    explanation: `## ${shortTopic}\n\nThis lesson is a recovery version generated so your study session can continue without failing. Start by defining **${shortTopic}** in simple terms, then break it into smaller parts, identify how those parts connect, and test yourself with a concrete example. In the **${techniqueLabel}** style, move from the big picture to one mechanism at a time. Ask what problem the concept solves, what inputs it needs, what steps happen in the middle, and what outcome it produces.\n\nWhen the topic feels large, study it in layers: first the definition, then the structure, then a real example, and finally common mistakes. After each section, pause and restate it in your own words. If you can explain it clearly from memory, you understand it. If not, revisit only the weak section instead of rereading everything.\n\nUse the takeaways and practice prompts below to rebuild confidence, then return to the topic with active recall instead of passive reading.`,
+    keyTakeaways: [
+      `State the main idea of ${shortTopic} in one or two sentences.`,
+      `Break ${shortTopic} into smaller parts and learn each part separately.`,
+      `Use recall and examples to check whether you truly understand ${shortTopic}.`,
+    ],
+    pomodoroPlan: [
+      { block: 1, focusMinutes: 25, breakMinutes: 5, task: `Read the lesson on ${shortTopic} and highlight the core definition plus key terms.` },
+      { block: 2, focusMinutes: 25, breakMinutes: 5, task: `Explain ${shortTopic} from memory, then correct gaps using one worked example.` },
+    ],
+    practiceQuestions: [
+      `What is the central idea behind ${shortTopic}?`,
+      `Which steps or parts make ${shortTopic} work?`,
+      `How would you apply ${shortTopic} in a practical example?`,
+    ],
+  };
 };
 
 // --- Generate a study plan + explanation in user's chosen style ---
