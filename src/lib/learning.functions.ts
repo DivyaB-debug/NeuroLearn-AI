@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateObject, NoObjectGeneratedError } from "ai";
+import { generateObject, generateText, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider, TECHNIQUES } from "./ai-gateway";
 
@@ -24,6 +24,65 @@ const diagItemSchema = z.object({
   choices: z.array(z.string()).length(4),
   correctIndex: z.number().int().min(0).max(3),
 });
+
+const looseTextItemSchema = z.union([
+  z.string(),
+  z.object({
+    text: z.string().optional(),
+    title: z.string().optional(),
+    value: z.string().optional(),
+    question: z.string().optional(),
+    prompt: z.string().optional(),
+    task: z.string().optional(),
+    activity: z.string().optional(),
+    description: z.string().optional(),
+    summary: z.string().optional(),
+    content: z.string().optional(),
+  }),
+]);
+
+const looseNumberSchema = z.union([z.number(), z.string()]);
+
+const cleanText = (value: unknown) => {
+  if (typeof value === "string") return value.replace(/\s+/g, " ").trim();
+  if (!value || typeof value !== "object") return "";
+
+  const record = value as Record<string, unknown>;
+  for (const key of ["text", "title", "value", "question", "prompt", "task", "activity", "description", "summary", "content"]) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.replace(/\s+/g, " ").trim();
+    }
+  }
+
+  return Object.values(record)
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .join(" — ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const numericValue = (value: unknown, fallback: number) => {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value);
+  if (typeof value === "string") {
+    const match = value.match(/\d+/);
+    if (match) return Number.parseInt(match[0], 10);
+  }
+  return fallback;
+};
+
+const ensureList = (items: unknown[], minimum: number, fallback: (index: number) => string) => {
+  const cleaned = items
+    .map((item) => cleanText(item))
+    .filter(Boolean)
+    .slice(0, 10);
+
+  while (cleaned.length < minimum) {
+    cleaned.push(fallback(cleaned.length));
+  }
+
+  return cleaned;
+};
 
 // --- Diagnostic: explain a topic in 6 techniques + comprehension MCQ each ---
 // Runs each technique as its own model call in parallel — much more reliable
@@ -71,15 +130,103 @@ Rules:
 
 const planSchema = z.object({
   explanation: z.string(),
+  keyTakeaways: z.array(looseTextItemSchema).min(3).max(10),
+  pomodoroPlan: z.array(z.object({
+    block: z.number().int().min(1),
+    focusMinutes: looseNumberSchema.optional(),
+    breakMinutes: looseNumberSchema.optional(),
+    task: looseTextItemSchema,
+  })).min(2).max(8),
+  practiceQuestions: z.array(looseTextItemSchema).min(3).max(10),
+});
+
+const normalizedPlanSchema = z.object({
+  explanation: z.string().min(80),
   keyTakeaways: z.array(z.string()).min(3).max(10),
   pomodoroPlan: z.array(z.object({
     block: z.number().int().min(1),
-    focusMinutes: z.number().int(),
-    breakMinutes: z.number().int(),
-    task: z.string(),
+    focusMinutes: z.number().int().min(1),
+    breakMinutes: z.number().int().min(1),
+    task: z.string().min(3),
   })).min(2).max(8),
   practiceQuestions: z.array(z.string()).min(3).max(10),
 });
+
+type NormalizedPlan = z.infer<typeof normalizedPlanSchema>;
+
+const extractJsonObject = (text: string) => {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+  if (fenced) return fenced.trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) return text.slice(start, end + 1);
+  return text.trim();
+};
+
+const normalizePlan = (raw: z.infer<typeof planSchema>, topic: string, techniqueLabel: string): NormalizedPlan => {
+  const takeaways = ensureList(
+    raw.keyTakeaways,
+    3,
+    (index) => `Review the ${index === 0 ? "core idea" : index === 1 ? "main mechanism" : "most important application"} in ${topic.slice(0, 80)}.`
+  );
+
+  const questions = ensureList(
+    raw.practiceQuestions,
+    3,
+    (index) => `How would you explain part ${index + 1} of ${topic.slice(0, 80)} in your own words?`
+  );
+
+  const blocks = raw.pomodoroPlan
+    .map((block, index) => ({
+      block: block.block || index + 1,
+      focusMinutes: numericValue(block.focusMinutes, 25),
+      breakMinutes: numericValue(block.breakMinutes, index === 3 ? 15 : 5),
+      task: cleanText(block.task) || `Study ${topic.slice(0, 80)} using the ${techniqueLabel} method.`,
+    }))
+    .slice(0, 8);
+
+  while (blocks.length < 2) {
+    const next = blocks.length + 1;
+    blocks.push({
+      block: next,
+      focusMinutes: 25,
+      breakMinutes: next === 4 ? 15 : 5,
+      task: next === 1
+        ? `Read the explanation and mark unfamiliar parts of ${topic.slice(0, 80)}.`
+        : `Summarize ${topic.slice(0, 80)} from memory, then check the lesson again.`,
+    });
+  }
+
+  return normalizedPlanSchema.parse({
+    explanation: raw.explanation.trim(),
+    keyTakeaways: takeaways,
+    pomodoroPlan: blocks,
+    practiceQuestions: questions,
+  });
+};
+
+const buildEmergencyPlan = (topic: string, techniqueLabel: string): NormalizedPlan => {
+  const shortTopic = topic.slice(0, 120);
+
+  return {
+    explanation: `## ${shortTopic}\n\nThis lesson is a recovery version generated so your study session can continue without failing. Start by defining **${shortTopic}** in simple terms, then break it into smaller parts, identify how those parts connect, and test yourself with a concrete example. In the **${techniqueLabel}** style, move from the big picture to one mechanism at a time. Ask what problem the concept solves, what inputs it needs, what steps happen in the middle, and what outcome it produces.\n\nWhen the topic feels large, study it in layers: first the definition, then the structure, then a real example, and finally common mistakes. After each section, pause and restate it in your own words. If you can explain it clearly from memory, you understand it. If not, revisit only the weak section instead of rereading everything.\n\nUse the takeaways and practice prompts below to rebuild confidence, then return to the topic with active recall instead of passive reading.`,
+    keyTakeaways: [
+      `State the main idea of ${shortTopic} in one or two sentences.`,
+      `Break ${shortTopic} into smaller parts and learn each part separately.`,
+      `Use recall and examples to check whether you truly understand ${shortTopic}.`,
+    ],
+    pomodoroPlan: [
+      { block: 1, focusMinutes: 25, breakMinutes: 5, task: `Read the lesson on ${shortTopic} and highlight the core definition plus key terms.` },
+      { block: 2, focusMinutes: 25, breakMinutes: 5, task: `Explain ${shortTopic} from memory, then correct gaps using one worked example.` },
+    ],
+    practiceQuestions: [
+      `What is the central idea behind ${shortTopic}?`,
+      `Which steps or parts make ${shortTopic} work?`,
+      `How would you apply ${shortTopic} in a practical example?`,
+    ],
+  };
+};
 
 // --- Generate a study plan + explanation in user's chosen style ---
 export const generateStudyPlan = createServerFn({ method: "POST" })
@@ -125,20 +272,36 @@ Syllabus / topic from learner:
 
     try {
       const { object } = await tryGenerate(true);
-      return object;
+      return normalizePlan(object, topic, technique.label);
     } catch (err) {
-      // Most NoObjectGenerated errors here are token-cap / schema-validation
-      // misses on long outputs. Retry once with a tighter, faster config.
       if (NoObjectGeneratedError.isInstance(err)) {
         try {
           const { object } = await tryGenerate(false);
-          return object;
+          return normalizePlan(object, topic, technique.label);
         } catch (err2) {
           console.error("generateStudyPlan retry failed:", err2);
-          throw new Error("Couldn't compose the lesson — try a shorter or more specific topic.");
+
+          try {
+            const provider = createLovableAiGatewayProvider(key);
+            const model = provider("google/gemini-2.5-flash-lite");
+            const { text } = await generateText({
+              model,
+              temperature: 0.5,
+              maxOutputTokens: 4096,
+              prompt: `${buildPrompt(false)}\n\nReturn only valid JSON with this shape:\n{\n  "explanation": string,\n  "keyTakeaways": string[],\n  "pomodoroPlan": [{"block": number, "focusMinutes": number, "breakMinutes": number, "task": string}],\n  "practiceQuestions": string[]\n}`,
+            });
+
+            const parsed = planSchema.parse(JSON.parse(extractJsonObject(text)));
+            return normalizePlan(parsed, topic, technique.label);
+          } catch (repairError) {
+            console.error("generateStudyPlan text fallback failed:", repairError);
+            return buildEmergencyPlan(topic, technique.label);
+          }
         }
       }
-      throw err;
+
+      console.error("generateStudyPlan primary failure:", err);
+      return buildEmergencyPlan(topic, technique.label);
     }
   });
 
