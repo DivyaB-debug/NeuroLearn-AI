@@ -128,15 +128,69 @@ Rules:
 
 const planSchema = z.object({
   explanation: z.string(),
+  keyTakeaways: z.array(looseTextItemSchema).min(3).max(10),
+  pomodoroPlan: z.array(z.object({
+    block: z.number().int().min(1),
+    focusMinutes: z.number().int().optional(),
+    breakMinutes: z.number().int().optional(),
+    task: z.string(),
+  })).min(2).max(8),
+  practiceQuestions: z.array(looseTextItemSchema).min(3).max(10),
+});
+
+const normalizedPlanSchema = z.object({
+  explanation: z.string().min(80),
   keyTakeaways: z.array(z.string()).min(3).max(10),
   pomodoroPlan: z.array(z.object({
     block: z.number().int().min(1),
-    focusMinutes: z.number().int(),
-    breakMinutes: z.number().int(),
-    task: z.string(),
+    focusMinutes: z.number().int().min(1),
+    breakMinutes: z.number().int().min(1),
+    task: z.string().min(3),
   })).min(2).max(8),
   practiceQuestions: z.array(z.string()).min(3).max(10),
 });
+
+const normalizePlan = (raw: z.infer<typeof planSchema>, topic: string, techniqueLabel: string) => {
+  const takeaways = ensureList(
+    raw.keyTakeaways,
+    3,
+    (index) => `Review the ${index === 0 ? "core idea" : index === 1 ? "main mechanism" : "most important application"} in ${topic.slice(0, 80)}.`
+  );
+
+  const questions = ensureList(
+    raw.practiceQuestions,
+    3,
+    (index) => `How would you explain part ${index + 1} of ${topic.slice(0, 80)} in your own words?`
+  );
+
+  const blocks = raw.pomodoroPlan
+    .map((block, index) => ({
+      block: block.block || index + 1,
+      focusMinutes: numericValue(block.focusMinutes, 25),
+      breakMinutes: numericValue(block.breakMinutes, index === 3 ? 15 : 5),
+      task: cleanText(block.task) || `Study ${topic.slice(0, 80)} using the ${techniqueLabel} method.`,
+    }))
+    .slice(0, 8);
+
+  while (blocks.length < 2) {
+    const next = blocks.length + 1;
+    blocks.push({
+      block: next,
+      focusMinutes: 25,
+      breakMinutes: next === 4 ? 15 : 5,
+      task: next === 1
+        ? `Read the explanation and mark unfamiliar parts of ${topic.slice(0, 80)}.`
+        : `Summarize ${topic.slice(0, 80)} from memory, then check the lesson again.`,
+    });
+  }
+
+  return normalizedPlanSchema.parse({
+    explanation: raw.explanation.trim(),
+    keyTakeaways: takeaways,
+    pomodoroPlan: blocks,
+    practiceQuestions: questions,
+  });
+};
 
 // --- Generate a study plan + explanation in user's chosen style ---
 export const generateStudyPlan = createServerFn({ method: "POST" })
