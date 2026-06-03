@@ -15,6 +15,7 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
   const [playing, setPlaying] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(0);
   const tickRef = useRef<number | null>(null);
+  const lastTopicRef = useRef<string>("");
 
   const build = async () => {
     if (!topic.trim()) { toast.error("Type a topic first"); return; }
@@ -45,7 +46,11 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
               next[i] = { ...next[i], img: `data:image/png;base64,${data.b64}` };
               return next;
             });
-            setImgLoaded((n) => n + 1);
+            setImgLoaded((n) => {
+              const k = n + 1;
+              if (k === 1) setPlaying(true); // start the "video" as soon as scene 1 lands
+              return k;
+            });
           } catch (e) {
             console.error("scene", i, e);
           }
@@ -57,6 +62,15 @@ export function VisualStoryLesson({ topic }: { topic: string }) {
       setBusy(false);
     }
   };
+
+  // Auto-build when a new topic arrives — don't make the user hunt for a button.
+  useEffect(() => {
+    const t = topic.trim();
+    if (!t || t === lastTopicRef.current || busy) return;
+    lastTopicRef.current = t;
+    void build();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topic]);
 
   // Auto-advance "video" playback through scenes (5s each).
   useEffect(() => {
