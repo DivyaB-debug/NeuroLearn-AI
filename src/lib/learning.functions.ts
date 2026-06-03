@@ -71,14 +71,14 @@ Rules:
 
 const planSchema = z.object({
   explanation: z.string(),
-  keyTakeaways: z.array(z.string()).min(4).max(10),
+  keyTakeaways: z.array(z.string()).min(3).max(10),
   pomodoroPlan: z.array(z.object({
     block: z.number().int().min(1),
     focusMinutes: z.number().int(),
     breakMinutes: z.number().int(),
     task: z.string(),
-  })).min(3).max(8),
-  practiceQuestions: z.array(z.string()).min(4).max(8),
+  })).min(2).max(8),
+  practiceQuestions: z.array(z.string()).min(3).max(10),
 });
 
 // --- Generate a study plan + explanation in user's chosen style ---
@@ -90,39 +90,58 @@ export const generateStudyPlan = createServerFn({ method: "POST" })
     }).parse(d)
   )
   .handler(async ({ data }) => {
-    const model = getModel();
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY — enable Lovable AI.");
     const technique = TECHNIQUES.find((t) => t.id === data.style)!;
-    // Scale depth with topic size — a single concept gets ~700 words,
-    // a full syllabus gets a thorough multi-section deep-dive.
     const big = data.topic.length > 180;
-    const wordTarget = big ? "900-1500 words" : "500-900 words";
-    try {
-      const { object } = await generateObject({
-        model,
-        schema: planSchema,
-        maxOutputTokens: 8192,
-        temperature: 0.75,
-        prompt: `Learner's preferred technique: ${technique.label} — ${technique.blurb}
+    // Trim very long topics so we don't burn the output budget on input echo.
+    const topic = data.topic.length > 1200 ? data.topic.slice(0, 1200) + "…" : data.topic;
+    const wordTarget = big ? "700-1100 words" : "400-700 words";
+
+    const buildPrompt = (deep: boolean) => `Learner's preferred technique: ${technique.label} — ${technique.blurb}
 
 Syllabus / topic from learner:
-"""${data.topic}"""
+"""${topic}"""
 
-1) "explanation": Explain the topic FULLY and DEEPLY in the ${technique.label} style. Use rich markdown — H2/H3 headings to break sections, bold, bullet lists, numbered steps, blockquotes for insights, and short worked examples or mini-scenarios. Target ${wordTarget}. ${big ? "Because the learner pasted a large topic, break it into clearly labeled sub-sections (one per sub-topic) and cover each thoroughly — do NOT summarize, teach it." : "Cover: intuition, formal definition, the core mechanism step by step, a concrete worked example, common pitfalls, and how it connects to related ideas."} Commit fully to the ${technique.label} style throughout — don't drift into a generic textbook tone.
+1) "explanation": Explain the topic in the ${technique.label} style using rich markdown (H2/H3, bold, bullets, short examples). Target ${deep ? wordTarget : "350-550 words"}. ${big ? "Break large topics into labeled sub-sections." : "Cover intuition, mechanism, a worked example, and common pitfalls."} Stay in the ${technique.label} voice.
 
-2) "keyTakeaways": 4-8 punchy bullets a learner should remember.
+2) "keyTakeaways": 3-7 punchy bullets.
 
-3) "pomodoroPlan": 3-6 blocks. 25 min focus / 5 min break, with a 15-min break after the 4th. Each block has a SPECIFIC task tied to a sub-section of the topic above.
+3) "pomodoroPlan": 2-5 blocks. 25 min focus / 5 min break, longer break after the 4th. Each block has a specific task.
 
-4) "practiceQuestions": 4-8 self-test questions ranging from recall to application.`,
+4) "practiceQuestions": 3-6 self-test questions from recall to application.`;
+
+    const tryGenerate = async (deep: boolean) => {
+      const provider = createLovableAiGatewayProvider(key);
+      const model = provider(deep ? "google/gemini-2.5-flash" : "google/gemini-2.5-flash-lite");
+      return generateObject({
+        model,
+        schema: planSchema,
+        maxOutputTokens: deep ? 8192 : 4096,
+        temperature: 0.7,
+        prompt: buildPrompt(deep),
       });
+    };
+
+    try {
+      const { object } = await tryGenerate(true);
       return object;
     } catch (err) {
+      // Most NoObjectGenerated errors here are token-cap / schema-validation
+      // misses on long outputs. Retry once with a tighter, faster config.
       if (NoObjectGeneratedError.isInstance(err)) {
-        throw new Error("Couldn't compose the lesson — try a shorter or more specific topic.");
+        try {
+          const { object } = await tryGenerate(false);
+          return object;
+        } catch (err2) {
+          console.error("generateStudyPlan retry failed:", err2);
+          throw new Error("Couldn't compose the lesson — try a shorter or more specific topic.");
+        }
       }
       throw err;
     }
   });
+
 
 // --- Visual story planner: turn a topic into 4 scene prompts + captions ---
 const storySchema = z.object({
