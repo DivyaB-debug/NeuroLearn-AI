@@ -159,6 +159,8 @@ function Learn() {
             </article>
 
             <aside className="space-y-4">
+              <VisualStoryLesson topic={topic.trim()} />
+
               <SignTeacher
                 text={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
                 title="Lesson in sign language"
