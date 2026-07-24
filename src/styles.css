@@ -127,32 +127,118 @@
     background-image: linear-gradient(135deg, oklch(0.78 0.17 55) 0%, oklch(0.68 0.2 35) 100%);
   }
 
-  /* Sign-language motion clues */
+  /* ============ Sign-language animation system ============ */
+
+  /* Motion path (J/Z): a bright ink stroke drawing itself */
   @keyframes sign-trace {
-    0%   { stroke-dashoffset: var(--trace-len, 200); opacity: 0.95; }
-    80%  { stroke-dashoffset: 0; opacity: 0.95; }
+    0%   { stroke-dashoffset: var(--trace-len, 200); opacity: 0; }
+    12%  { opacity: 1; }
+    75%  { stroke-dashoffset: 0; opacity: 1; }
+    92%  { stroke-dashoffset: 0; opacity: 0.9; }
     100% { stroke-dashoffset: 0; opacity: 0; }
   }
   .sign-trace {
     stroke-dasharray: var(--trace-len, 200);
     stroke-dashoffset: var(--trace-len, 200);
-    animation: sign-trace 1.6s ease-in-out infinite;
+    animation: sign-trace 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--ember) 55%, transparent));
   }
+  /* A dot representing the fingertip riding along the traced path */
+  @keyframes sign-tip {
+    0%   { offset-distance: 0%; opacity: 0; }
+    10%  { opacity: 1; }
+    75%  { offset-distance: 100%; opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .sign-tip {
+    offset-path: path(var(--tip-path));
+    offset-rotate: 0deg;
+    animation: sign-tip 2.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    filter: drop-shadow(0 0 8px color-mix(in oklab, var(--ember) 80%, transparent));
+  }
+
+  /* Soft breathing halo behind the hand */
   @keyframes sign-pulse {
-    0%   { transform: scale(0.6); opacity: 0.55; }
-    80%  { transform: scale(1.15); opacity: 0; }
-    100% { transform: scale(1.15); opacity: 0; }
+    0%   { transform: scale(0.7); opacity: 0.5; }
+    70%  { transform: scale(1.25); opacity: 0; }
+    100% { transform: scale(1.25); opacity: 0; }
   }
-  .sign-pulse { animation: sign-pulse 1.4s ease-out infinite; }
+  .sign-pulse { animation: sign-pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+  /* Rotating conic ring — a subtle "active" indicator */
+  @keyframes sign-ring {
+    to { transform: rotate(1turn); }
+  }
+  .sign-ring {
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      color-mix(in oklab, var(--ember) 45%, transparent) 60deg,
+      transparent 140deg,
+      color-mix(in oklab, var(--ember) 25%, transparent) 220deg,
+      transparent 300deg
+    );
+    animation: sign-ring 6s linear infinite;
+    mask: radial-gradient(circle, transparent 62%, black 63%, black 74%, transparent 75%);
+    -webkit-mask: radial-gradient(circle, transparent 62%, black 63%, black 74%, transparent 75%);
+  }
+
+  /* Idle breathing on the hand itself — feels alive, not frozen */
+  @keyframes sign-breathe {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-2px) scale(1.015); }
+  }
+  .sign-breathe { animation: sign-breathe 3.6s ease-in-out infinite; }
+
+  /* Entry pose: settle in with a tiny overshoot */
+  @keyframes sign-settle {
+    0%   { transform: scale(0.86) rotate(-2deg); opacity: 0; filter: blur(6px); }
+    55%  { transform: scale(1.04) rotate(0.5deg); opacity: 1; filter: blur(0); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+  }
+  .sign-settle { animation: sign-settle 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+  /* Ghost of the previous letter fading out — the morph illusion */
+  @keyframes sign-ghost {
+    0%   { transform: scale(1); opacity: 0.5; filter: blur(0); }
+    100% { transform: scale(1.12) rotate(1deg); opacity: 0; filter: blur(8px); }
+  }
+  .sign-ghost { animation: sign-ghost 0.55s ease-out both; }
+
+  /* Double-letter cue */
   @keyframes sign-bounce {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-6px); }
+    0%, 100% { transform: translateY(0) scale(1); }
+    45%      { transform: translateY(-8px) scale(1.03); }
+    70%      { transform: translateY(0) scale(0.98); }
   }
-  .sign-bounce { animation: sign-bounce 0.9s ease-in-out infinite; }
+  .sign-bounce { animation: sign-bounce 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+
   @keyframes sign-arrow {
-    0%   { transform: translateX(-6px); opacity: 0.2; }
-    50%  { transform: translateX(0);    opacity: 1; }
-    100% { transform: translateX(6px);  opacity: 0.2; }
+    0%   { transform: translateX(-6px) scale(0.9); opacity: 0.2; }
+    50%  { transform: translateX(0) scale(1.1);    opacity: 1; }
+    100% { transform: translateX(6px) scale(0.9);  opacity: 0.2; }
   }
   .sign-arrow { animation: sign-arrow 1.2s ease-in-out infinite; }
+
+  /* Faint scanning highlight sweeping across the hand */
+  @keyframes sign-sheen {
+    0%   { transform: translateX(-140%) skewX(-18deg); }
+    100% { transform: translateX(240%) skewX(-18deg); }
+  }
+  .sign-sheen {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklab, var(--ember) 22%, transparent) 45%,
+      color-mix(in oklab, white 40%, transparent) 50%,
+      color-mix(in oklab, var(--ember) 22%, transparent) 55%,
+      transparent 100%
+    );
+    animation: sign-sheen 3.2s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sign-trace, .sign-tip, .sign-pulse, .sign-ring, .sign-breathe,
+    .sign-bounce, .sign-arrow, .sign-sheen { animation: none !important; }
+  }
 }
