@@ -83,7 +83,7 @@ function Landing() {
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {[
             { i: Brain, t: "Discover your style", d: "Pick a topic. Read it explained six ways. A short quiz reveals which technique your brain locks onto." },
-            { i: BookOpenCheck, t: "Drop in any syllabus", d: "Class notes, exam topics, a textbook chapter — Lumen rewrites it in your style." },
+            { i: BookOpenCheck, t: "Drop in any syllabus", d: "Class notes, exam topics, a textbook chapter — NeuroLearnAI rewrites it in your style." },
             { i: Timer, t: "Study with a plan", d: "Every lesson comes with a Pomodoro schedule, key takeaways, and self-test questions." },
           ].map(({ i: Icon, t, d }, idx) => (
             <div key={t} className="rounded-3xl border border-border bg-card p-6">
