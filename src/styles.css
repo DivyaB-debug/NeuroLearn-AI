@@ -118,8 +118,8 @@
 
   .grain {
     background-image:
-      radial-gradient(oklch(0.18 0.03 50 / 0.04) 1px, transparent 1px),
-      radial-gradient(oklch(0.72 0.18 45 / 0.05) 1px, transparent 1px);
+      radial-gradient(oklch(0.96 0.01 280 / 0.04) 1px, transparent 1px),
+      radial-gradient(oklch(0.78 0.15 195 / 0.06) 1px, transparent 1px);
     background-size: 24px 24px, 32px 32px;
     background-position: 0 0, 12px 16px;
   }
