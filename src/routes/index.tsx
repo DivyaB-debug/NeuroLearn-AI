@@ -42,7 +42,7 @@ function Landing() {
               Learn the way <em className="text-accent not-italic">your brain</em> actually works.
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Lumen finds your personal learning style — then explains anything from
+              NeuroLearnAI finds your personal learning style — then explains anything from
               fractions to quantum field theory in the technique that makes it click,
               wrapped in a Pomodoro study plan.
             </p>
