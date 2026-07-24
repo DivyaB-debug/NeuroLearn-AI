@@ -53,7 +53,7 @@ function Learn() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full ember-gradient" />
-          <span className="font-display text-lg font-semibold">Lumen</span>
+          <span className="font-display text-lg font-semibold">NeuroLearnAI</span>
         </Link>
         <div className="flex items-center gap-3 text-xs">
           <span className="hidden rounded-full bg-secondary px-3 py-1 text-muted-foreground sm:inline-flex">
