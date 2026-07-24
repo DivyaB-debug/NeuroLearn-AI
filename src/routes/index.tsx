@@ -98,12 +98,6 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-xs text-muted-foreground">
-          <span>© Lumen · Built for curious brains</span>
-          <span>Powered by Lovable AI</span>
-        </div>
-      </footer>
     </main>
   );
 }
