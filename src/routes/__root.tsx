@@ -46,10 +46,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lumen — Learn the way your brain actually works" },
+      { title: "NeuroLearnAI — Learn the way your brain actually works" },
       { name: "description", content: "AI tutor that adapts to your personal learning style. Visual stories, analogies, Feynman, Socratic, mnemonics — paired with a Pomodoro study plan." },
-      { property: "og:title", content: "Lumen — Learn the way your brain actually works" },
-      { name: "twitter:title", content: "Lumen — Learn the way your brain actually works" },
+      { property: "og:title", content: "NeuroLearnAI — Learn the way your brain actually works" },
+      { name: "twitter:title", content: "NeuroLearnAI — Learn the way your brain actually works" },
       { property: "og:description", content: "AI tutor that adapts to your personal learning style. Visual stories, analogies, Feynman, Socratic, mnemonics — paired with a Pomodoro study plan." },
       { name: "twitter:description", content: "AI tutor that adapts to your personal learning style. Visual stories, analogies, Feynman, Socratic, mnemonics — paired with a Pomodoro study plan." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/65c187d4-8791-45e4-9167-2fcb11ca1692/id-preview-78a0b620--e587ff87-57d9-4e88-9cac-e764ae9ef22e.lovable.app-1778820513678.png" },

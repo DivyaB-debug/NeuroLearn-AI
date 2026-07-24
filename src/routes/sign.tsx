@@ -57,7 +57,7 @@ function SignPage() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="h-7 w-7 rounded-full ember-gradient" />
-          <span className="font-display text-lg font-semibold">Lumen</span>
+          <span className="font-display text-lg font-semibold">NeuroLearnAI</span>
         </Link>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <Link to="/learn" className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Study hub</Link>
@@ -72,7 +72,7 @@ function SignPage() {
         </span>
         <h1 className="mt-4 font-display text-4xl md:text-5xl">Learn sign language — then learn anything in it.</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Start with the ASL alphabet. Once you're comfortable, drop in any word or concept and Lumen will
+          Start with the ASL alphabet. Once you're comfortable, drop in any word or concept and NeuroLearnAI will
           fingerspell it back to you, letter by letter. Your progress is saved to your account.
         </p>
 
@@ -324,7 +324,7 @@ function FingerspellPlayer({
 
       {letters.length === 0 && (
         <p className="mt-8 text-sm text-muted-foreground">
-          Type any word above and press play. Lumen will fingerspell each letter at your chosen pace, and your progress is saved automatically.
+          Type any word above and press play. NeuroLearnAI will fingerspell each letter at your chosen pace, and your progress is saved automatically.
         </p>
       )}
 

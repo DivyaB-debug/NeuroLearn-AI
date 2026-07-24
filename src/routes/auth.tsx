@@ -32,7 +32,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center gap-2">
           <div className="h-7 w-7 rounded-full ember-gradient" />
-          <span className="font-display text-lg font-semibold">Lumen</span>
+          <span className="font-display text-lg font-semibold">NeuroLearnAI</span>
         </Link>
         <div className="rounded-3xl border border-border bg-card p-7 shadow-sm">
           <h1 className="font-display text-3xl">What should we call you?</h1>

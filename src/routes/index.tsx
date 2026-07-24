@@ -20,7 +20,7 @@ function Landing() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full ember-gradient" />
-          <span className="font-display text-xl font-semibold">Lumen</span>
+          <span className="font-display text-xl font-semibold">NeuroLearnAI</span>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/sign" className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:inline-flex">
@@ -42,7 +42,7 @@ function Landing() {
               Learn the way <em className="text-accent not-italic">your brain</em> actually works.
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Lumen finds your personal learning style — then explains anything from
+              NeuroLearnAI finds your personal learning style — then explains anything from
               fractions to quantum field theory in the technique that makes it click,
               wrapped in a Pomodoro study plan.
             </p>
@@ -83,7 +83,7 @@ function Landing() {
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {[
             { i: Brain, t: "Discover your style", d: "Pick a topic. Read it explained six ways. A short quiz reveals which technique your brain locks onto." },
-            { i: BookOpenCheck, t: "Drop in any syllabus", d: "Class notes, exam topics, a textbook chapter — Lumen rewrites it in your style." },
+            { i: BookOpenCheck, t: "Drop in any syllabus", d: "Class notes, exam topics, a textbook chapter — NeuroLearnAI rewrites it in your style." },
             { i: Timer, t: "Study with a plan", d: "Every lesson comes with a Pomodoro schedule, key takeaways, and self-test questions." },
           ].map(({ i: Icon, t, d }, idx) => (
             <div key={t} className="rounded-3xl border border-border bg-card p-6">
@@ -98,12 +98,6 @@ function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-xs text-muted-foreground">
-          <span>© Lumen · Built for curious brains</span>
-          <span>Powered by Lovable AI</span>
-        </div>
-      </footer>
     </main>
   );
 }
