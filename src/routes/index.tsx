@@ -20,7 +20,7 @@ function Landing() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full ember-gradient" />
-          <span className="font-display text-xl font-semibold">Lumen</span>
+          <span className="font-display text-xl font-semibold">NeuroLearnAI</span>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/sign" className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:inline-flex">
