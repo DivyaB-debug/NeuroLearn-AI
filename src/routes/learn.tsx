@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand, Upload } from "lucide-react";
 import { SignTeacher } from "@/components/SignTeacher";
 import { VisualStoryLesson } from "@/components/VisualStoryLesson";
+import { ConceptSigner } from "@/components/ConceptSigner";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
