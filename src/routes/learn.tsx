@@ -162,9 +162,15 @@ function Learn() {
             <aside className="space-y-4">
               <VisualStoryLesson topic={topic.trim()} />
 
+              <ConceptSigner
+                topic={topic.trim()}
+                lesson={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
+                title="Signed like a Deaf ASL user would"
+              />
+
               <SignTeacher
                 text={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
-                title="Lesson in sign language"
+                title="Fingerspell the full lesson"
               />
               <div className="rounded-3xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2">
