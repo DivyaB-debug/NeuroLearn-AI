@@ -438,18 +438,18 @@ ${source}
       });
 
       // Filter: replace any unknown gloss with a spell fallback of its english.
-      const cleaned: AslGlossItem[] = object.sequence.map((item) => {
+      const cleaned: AslGlossItem[] = object.sequence.flatMap((item): AslGlossItem[] => {
         if (item.kind === "sign") {
           const up = item.gloss.toUpperCase().trim();
-          if (KNOWN_GLOSSES.includes(up)) return { kind: "sign", gloss: up, english: item.english };
+          if (KNOWN_GLOSSES.includes(up)) return [{ kind: "sign", gloss: up, english: item.english }];
           const word = (item.english ?? item.gloss).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 12);
-          if (!word) return null;
-          return { kind: "spell", text: word, english: item.english ?? item.gloss };
+          if (!word) return [];
+          return [{ kind: "spell", text: word, english: item.english ?? item.gloss }];
         }
         const text = item.text.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 12);
-        if (!text) return null;
-        return { kind: "spell", text, english: item.english };
-      }).filter((x): x is AslGlossItem => x !== null);
+        if (!text) return [];
+        return [{ kind: "spell", text, english: item.english }];
+      });
 
       return { summary: object.summary, sequence: cleaned };
     } catch (err) {
