@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateObject, generateText, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider, TECHNIQUES } from "./ai-gateway";
+import { KNOWN_GLOSSES } from "./asl-signs";
 
 const getModel = () => {
   const key = process.env.LOVABLE_API_KEY;
