@@ -345,3 +345,116 @@ Title should be short and evocative.`,
     }
   });
 
+
+// --- ASL Gloss: translate lesson text into a sequence of ASL word-signs ---
+// Uses the curated vocabulary in asl-signs.ts. Anything not in the vocabulary
+// is fingerspelled letter-by-letter. Output is ordered so the avatar can
+// perform the signs one after another, the way Deaf ASL users actually
+// communicate (topic-comment order, no articles, verbs after subjects).
+
+const glossItemSchema = z.union([
+  z.object({ kind: z.literal("sign"), gloss: z.string(), english: z.string().optional() }),
+  z.object({ kind: z.literal("spell"), text: z.string(), english: z.string().optional() }),
+]);
+
+const glossResponseSchema = z.object({
+  summary: z.string(),
+  sequence: z.array(glossItemSchema).min(4).max(80),
+});
+
+export type AslGlossItem = z.infer<typeof glossItemSchema>;
+export type AslGloss = z.infer<typeof glossResponseSchema>;
+
+const buildFallbackGloss = (topic: string): AslGloss => {
+  const clean = topic.replace(/[^A-Za-z0-9\s]/g, " ").split(/\s+/).filter(Boolean).slice(0, 12);
+  const seq: AslGlossItem[] = [
+    { kind: "sign", gloss: "HELLO", english: "Hello" },
+    { kind: "sign", gloss: "TODAY", english: "today" },
+    { kind: "sign", gloss: "LEARN", english: "we learn" },
+  ];
+  // TODAY isn't in dict — replace with a safe alternative
+  seq[1] = { kind: "sign", gloss: "I", english: "I" };
+  for (const word of clean) {
+    const up = word.toUpperCase();
+    if (KNOWN_GLOSSES.includes(up)) seq.push({ kind: "sign", gloss: up, english: word });
+    else seq.push({ kind: "spell", text: up, english: word });
+  }
+  seq.push({ kind: "sign", gloss: "IMPORTANT", english: "important" });
+  seq.push({ kind: "sign", gloss: "UNDERSTAND", english: "understand" });
+  return { summary: `A short ASL introduction to ${topic}.`, sequence: seq };
+};
+
+export const generateAslGloss = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({
+      topic: z.string().trim().min(2).max(2000),
+      lesson: z.string().trim().max(6000).optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data }): Promise<AslGloss> => {
+    const key = process.env.LOVABLE_API_KEY;
+    if (!key) throw new Error("Missing LOVABLE_API_KEY — enable Lovable AI.");
+    const provider = createLovableAiGatewayProvider(key);
+    const model = provider("google/gemini-2.5-flash");
+
+    const source = data.lesson?.slice(0, 4000) ?? data.topic;
+    const vocab = KNOWN_GLOSSES.join(", ");
+
+    const prompt = `You are an ASL interpreter. Translate the following lesson into an ordered sequence of ASL signs, the way a Deaf signer would actually communicate it — using ASL grammar, NOT English word order.
+
+ASL grammar rules to follow:
+- Drop articles (a/an/the), the verb "to be" (is/are/was), and helper words.
+- Topic-comment order: put the TOPIC first, then the COMMENT. e.g. English "Ohm's law relates voltage and current" → ASL "OHM LAW #V #I CONNECT".
+- Use spatial pronouns: I / YOU / IT / WE.
+- Repeat signs to emphasize plurals or intensity when natural.
+- Use rhetorical WH-questions ("WHY? BECAUSE …") to explain reasoning.
+- Fingerspell proper names, formulas, numbers, and technical terms not in the vocabulary.
+
+Allowed word-signs vocabulary (use these EXACT glosses, uppercase):
+${vocab}
+
+Output rules:
+- "summary": one plain-English sentence describing what the signing sequence teaches.
+- "sequence": 20-60 items in order. Each item is either:
+    { "kind": "sign", "gloss": "<one of the allowed glosses>", "english": "<English word being signed>" }
+  or
+    { "kind": "spell", "text": "<letters A-Z, uppercase>", "english": "<the word>" }
+- ONLY use glosses from the vocabulary above for "sign" items. If a concept isn't in the vocabulary, use "spell" instead.
+- Prefer signs over fingerspelling wherever possible — fingerspell only proper nouns, variable names, formulas, and specialized jargon.
+- Keep each spelled word ≤ 12 letters. Split longer terms (e.g. "electromagnet" → two spelled chunks).
+
+Lesson to translate:
+"""
+${source}
+"""`;
+
+    try {
+      const { object } = await generateObject({
+        model,
+        schema: glossResponseSchema,
+        maxOutputTokens: 4096,
+        temperature: 0.5,
+        prompt,
+      });
+
+      // Filter: replace any unknown gloss with a spell fallback of its english.
+      const cleaned: AslGlossItem[] = object.sequence.map((item) => {
+        if (item.kind === "sign") {
+          const up = item.gloss.toUpperCase().trim();
+          if (KNOWN_GLOSSES.includes(up)) return { kind: "sign", gloss: up, english: item.english };
+          const word = (item.english ?? item.gloss).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 12);
+          if (!word) return null;
+          return { kind: "spell", text: word, english: item.english ?? item.gloss };
+        }
+        const text = item.text.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 12);
+        if (!text) return null;
+        return { kind: "spell", text, english: item.english };
+      }).filter((x): x is AslGlossItem => x !== null);
+
+      return { summary: object.summary, sequence: cleaned };
+    } catch (err) {
+      console.error("generateAslGloss failed:", err);
+      return buildFallbackGloss(data.topic);
+    }
+  });
+
