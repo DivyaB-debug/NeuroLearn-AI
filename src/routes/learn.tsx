@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { Loader2, Timer, Play, Pause, RotateCcw, Sparkles, Hand, Upload } from "lucide-react";
 import { SignTeacher } from "@/components/SignTeacher";
 import { VisualStoryLesson } from "@/components/VisualStoryLesson";
-import { ConceptSigner } from "@/components/ConceptSigner";
 
 export const Route = createFileRoute("/learn")({ component: Learn });
 
@@ -162,15 +161,9 @@ function Learn() {
             <aside className="space-y-4">
               <VisualStoryLesson topic={topic.trim()} />
 
-              <ConceptSigner
-                topic={topic.trim()}
-                lesson={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
-                title="Signed like a Deaf ASL user would"
-              />
-
               <SignTeacher
                 text={`${plan.explanation}\n\nKey takeaways: ${plan.keyTakeaways.join(". ")}`}
-                title="Fingerspell the full lesson"
+                title="Lesson in sign language"
               />
               <div className="rounded-3xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2">
