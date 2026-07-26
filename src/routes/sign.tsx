@@ -1,8 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ASL_ALPHABET, SIGN_TIPS, COMMON_SIGNS, type SignWord } from "@/lib/sign-language";
 import { SignHand } from "@/components/SignHand";
 import { WordSignLesson } from "@/components/WordSignLesson";
+import { ConceptSigner } from "@/components/ConceptSigner";
 import { useAuth } from "@/lib/auth-context";
 import {
   loadSignProgress,
@@ -18,28 +19,37 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/sign")({
+  head: () => ({
+    meta: [
+      { title: "ASL Sign Language Learning — NeuroLearnAI" },
+      { name: "description", content: "Practice ASL alphabet, common word signs, and an animated avatar that explains concepts using ASL word-signs instead of spelling every letter." },
+      { property: "og:title", content: "ASL Sign Language Learning — NeuroLearnAI" },
+      { property: "og:description", content: "Learn with ASL hand animations, common signs, progress tracking, and concept explanations from an animated signing avatar." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: SignPage,
   validateSearch: (s: Record<string, unknown>) => ({
     text: typeof s.text === "string" ? s.text : "",
-    tab: s.tab === "spell" || s.tab === "learn" ? s.tab : undefined,
+    tab: s.tab === "spell" || s.tab === "learn" || s.tab === "words" || s.tab === "avatar" || s.tab === "stats" ? s.tab : undefined,
   }),
 });
 
 
 function SignPage() {
-  const { user, loading, signOut, profile } = useAuth();
-  const navigate = useNavigate();
+  const { user, signOut, profile } = useAuth();
   const search = Route.useSearch();
-  const [tab, setTab] = useState<"learn" | "words" | "spell" | "stats">(
-    search.tab ?? (search.text ? "spell" : "learn")
+  const [tab, setTab] = useState<"avatar" | "learn" | "words" | "spell" | "stats">(
+    search.tab ?? (search.text ? "spell" : "avatar")
   );
 
   const [letters, setLetters] = useState<Record<string, LetterRow>>({});
   const [topics, setTopics] = useState<TopicRow[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth" });
-  }, [user, loading, navigate]);
+    if (search.tab) setTab(search.tab);
+  }, [search.tab]);
 
   const reload = useCallback(() => {
     if (!user) return;
@@ -60,20 +70,20 @@ function SignPage() {
           <span className="font-display text-lg font-semibold">NeuroLearnAI</span>
         </Link>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <Link to="/learn" className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Study hub</Link>
-          {profile?.display_name && <span>Hi, {profile.display_name}</span>}
-          <button onClick={signOut} className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Sign out</button>
+          {user ? <Link to="/learn" className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Study hub</Link> : <Link to="/auth" className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Enter name</Link>}
+          {profile?.display_name && <span className="hidden sm:inline">Hi, {profile.display_name}</span>}
+          {user && <button onClick={signOut} className="rounded-full border border-border px-3 py-1 hover:bg-secondary">Sign out</button>}
         </div>
       </header>
 
       <section className="mx-auto max-w-5xl px-6 pb-20">
         <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs">
-          <Hand className="h-3 w-3" /> Sign Language Module · ASL fingerspelling
+          <Hand className="h-3 w-3" /> Sign Language Module · ASL word-sign avatar
         </span>
         <h1 className="mt-4 font-display text-4xl md:text-5xl">Learn sign language — then learn anything in it.</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Start with the ASL alphabet. Once you're comfortable, drop in any word or concept and NeuroLearnAI will
-          fingerspell it back to you, letter by letter. Your progress is saved to your account.
+          Ask for a concept and the animated avatar will explain it with ASL word-signs and actions first,
+          using fingerspelling only for names, formulas, and technical words.
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
@@ -88,6 +98,7 @@ function SignPage() {
 
         <div className="mt-6 inline-flex flex-wrap rounded-full border border-border bg-card p-1 text-sm">
           {([
+            ["avatar","Concept avatar"],
             ["learn","Learn the alphabet"],
             ["words","Common signs"],
             ["spell","Sign a concept"],
@@ -101,6 +112,7 @@ function SignPage() {
         </div>
 
         <div className="mt-8">
+          {tab === "avatar" && <ConceptSignLab initialTopic={search.text} />}
           {tab === "learn" && <LearnAlphabet letters={letters} userId={user?.id} onChange={reload} />}
           {tab === "words" && <CommonSignsPanel />}
           {tab === "spell" && <FingerspellPlayer initialText={search.text} userId={user?.id} onSaved={reload} />}
