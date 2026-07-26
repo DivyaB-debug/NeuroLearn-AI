@@ -123,6 +123,49 @@ function SignPage() {
   );
 }
 
+function ConceptSignLab({ initialTopic = "" }: { initialTopic?: string }) {
+  const [topic, setTopic] = useState(initialTopic || "Ohm's law");
+  const examples = ["Ohm's law", "Photosynthesis", "Newton's laws", "Water cycle"];
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+      <section className="rounded-3xl border border-border bg-card p-6">
+        <p className="text-xs uppercase tracking-widest text-accent">ASL concept explanation</p>
+        <h2 className="mt-2 font-display text-3xl">Human-style signing for real concepts</h2>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Enter a topic. NeuroLearnAI converts it into ASL-style gloss order, chooses available word-signs,
+          and the avatar performs those signs. Unknown names or formulas are fingerspelled only when needed.
+        </p>
+        <label className="mt-6 block text-xs uppercase tracking-widest text-muted-foreground">Concept</label>
+        <textarea
+          value={topic}
+          onChange={(event) => setTopic(event.target.value)}
+          rows={4}
+          placeholder="e.g. Ohm's law: voltage, current, resistance"
+          className="mt-2 w-full resize-none rounded-2xl border border-input bg-background px-4 py-3 text-sm outline-none focus:border-accent"
+        />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {examples.map((example) => (
+            <button
+              key={example}
+              onClick={() => setTopic(example)}
+              className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <ConceptSigner
+        topic={topic}
+        lesson={`Teach this concept clearly in ASL word signs with actions and topic-comment order: ${topic}`}
+        title="Animated ASL concept avatar"
+      />
+    </div>
+  );
+}
+
 function LearnAlphabet({
   letters, userId, onChange,
 }: { letters: Record<string, LetterRow>; userId?: string; onChange: () => void }) {
