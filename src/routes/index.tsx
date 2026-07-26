@@ -1,9 +1,21 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Sparkles, Brain, Timer, BookOpenCheck } from "lucide-react";
+import { Sparkles, Brain, Timer, BookOpenCheck, Hand } from "lucide-react";
 
-export const Route = createFileRoute("/")({ component: Landing });
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "NeuroLearnAI — AI Study & ASL Learning" },
+      { name: "description", content: "Learn any topic with AI study techniques, visual storytelling, Pomodoro plans, and an ASL signing avatar for concept explanations." },
+      { property: "og:title", content: "NeuroLearnAI — AI Study & ASL Learning" },
+      { property: "og:description", content: "AI learning platform with personalized techniques, visual lessons, study plans, and ASL concept signing." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Landing,
+});
 
 function Landing() {
   const { user, profile, loading } = useAuth();
@@ -23,8 +35,8 @@ function Landing() {
           <span className="font-display text-xl font-semibold">NeuroLearnAI</span>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/sign" className="hidden rounded-full px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:inline-flex">
-            Sign language
+          <Link to="/sign" search={{ tab: "avatar" }} className="inline-flex rounded-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:px-4">
+            ASL avatar
           </Link>
           <Link to="/auth" className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-secondary">
             Sign in
@@ -49,6 +61,9 @@ function Landing() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/auth" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 Know your way of learning →
+              </Link>
+              <Link to="/sign" search={{ tab: "avatar" }} className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary">
+                <Hand className="h-4 w-4" /> Learn with ASL avatar
               </Link>
               <a href="#how" className="rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary">
                 How it works
