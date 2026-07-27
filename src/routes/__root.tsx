@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth-context";
+import { BrandBadge } from "@/components/BrandBadge";
 
 function NotFoundComponent() {
   return (
@@ -89,6 +90,7 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <Toaster position="top-center" richColors />
+        <BrandBadge />
       </AuthProvider>
     </QueryClientProvider>
   );
