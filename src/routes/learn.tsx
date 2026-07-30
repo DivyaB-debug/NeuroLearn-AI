@@ -60,7 +60,7 @@ function Learn() {
           <span className="hidden rounded-full bg-secondary px-3 py-1 text-muted-foreground sm:inline-flex">
             Style: <span className="ml-1 font-medium text-foreground">{tech.label}</span>
           </span>
-          <Link to="/sign" search={{ text: undefined }} className="text-muted-foreground hover:text-foreground">Sign language</Link>
+          <Link to="/sign" search={{ text: undefined, tab: undefined }} className="text-muted-foreground hover:text-foreground">Sign language</Link>
           <Link to="/diagnostic" className="text-muted-foreground hover:text-foreground">Retake</Link>
           <button onClick={signOut} className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-secondary">Sign out</button>
         </div>

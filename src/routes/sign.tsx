@@ -37,18 +37,20 @@ export const Route = createFileRoute("/sign")({
 });
 
 
+type Tab = "avatar" | "learn" | "words" | "spell" | "stats";
+
 function SignPage() {
   const { user, signOut, profile } = useAuth();
   const search = Route.useSearch();
-  const [tab, setTab] = useState<"avatar" | "learn" | "words" | "spell" | "stats">(
-    (search.tab as typeof tab) ?? (search.text ? "spell" : "avatar")
+  const [tab, setTab] = useState<Tab>(
+    (search.tab as Tab) ?? (search.text ? "spell" : "avatar")
   );
 
   const [letters, setLetters] = useState<Record<string, LetterRow>>({});
   const [topics, setTopics] = useState<TopicRow[]>([]);
 
   useEffect(() => {
-    if (search.tab) setTab(search.tab as typeof tab);
+    if (search.tab) setTab(search.tab as Tab);
   }, [search.tab]);
 
   const reload = useCallback(() => {
