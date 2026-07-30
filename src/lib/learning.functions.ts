@@ -1,14 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateObject, generateText, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider, TECHNIQUES } from "./ai-gateway";
+import { getGoogleModel, TECHNIQUES } from "./ai-gateway";
 import { KNOWN_GLOSSES } from "./asl-signs";
 
-const getModel = () => {
-  const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY — enable Lovable AI to use the diagnostic.");
-  return createLovableAiGatewayProvider(key)("google/gemini-2.5-flash");
-};
+const getModel = () => getGoogleModel();
 
 const techniqueIds = [
   "visual_storytelling",
@@ -238,8 +234,7 @@ export const generateStudyPlan = createServerFn({ method: "POST" })
     }).parse(d)
   )
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY — enable Lovable AI.");
+    const model = getModel();
     const technique = TECHNIQUES.find((t) => t.id === data.style)!;
     const big = data.topic.length > 180;
     // Trim very long topics so we don't burn the output budget on input echo.
@@ -260,8 +255,6 @@ Syllabus / topic from learner:
 4) "practiceQuestions": 3-6 self-test questions from recall to application.`;
 
     const tryGenerate = async (deep: boolean) => {
-      const provider = createLovableAiGatewayProvider(key);
-      const model = provider(deep ? "google/gemini-2.5-flash" : "google/gemini-2.5-flash-lite");
       return generateObject({
         model,
         schema: planSchema,
@@ -283,8 +276,6 @@ Syllabus / topic from learner:
           console.error("generateStudyPlan retry failed:", err2);
 
           try {
-            const provider = createLovableAiGatewayProvider(key);
-            const model = provider("google/gemini-2.5-flash-lite");
             const { text } = await generateText({
               model,
               temperature: 0.5,
@@ -425,10 +416,9 @@ export const generateAslGloss = createServerFn({ method: "POST" })
     }).parse(d)
   )
   .handler(async ({ data }): Promise<AslGloss> => {
-    const key = process.env.LOVABLE_API_KEY;
+    const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!key) return buildFallbackGloss(data.topic);
-    const provider = createLovableAiGatewayProvider(key);
-    const model = provider("google/gemini-2.5-flash");
+    const model = getGoogleModel();
 
     const source = data.lesson?.slice(0, 4000) ?? data.topic;
     const vocab = KNOWN_GLOSSES.join(", ");
