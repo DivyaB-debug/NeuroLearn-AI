@@ -31,24 +31,26 @@ export const Route = createFileRoute("/sign")({
   }),
   component: SignPage,
   validateSearch: (s: Record<string, unknown>) => ({
-    text: typeof s.text === "string" ? s.text : "",
+    text: typeof s.text === "string" ? s.text : undefined,
     tab: s.tab === "spell" || s.tab === "learn" || s.tab === "words" || s.tab === "avatar" || s.tab === "stats" ? s.tab : undefined,
   }),
 });
 
 
+type Tab = "avatar" | "learn" | "words" | "spell" | "stats";
+
 function SignPage() {
   const { user, signOut, profile } = useAuth();
   const search = Route.useSearch();
-  const [tab, setTab] = useState<"avatar" | "learn" | "words" | "spell" | "stats">(
-    search.tab ?? (search.text ? "spell" : "avatar")
+  const [tab, setTab] = useState<Tab>(
+    (search.tab as Tab) ?? (search.text ? "spell" : "avatar")
   );
 
   const [letters, setLetters] = useState<Record<string, LetterRow>>({});
   const [topics, setTopics] = useState<TopicRow[]>([]);
 
   useEffect(() => {
-    if (search.tab) setTab(search.tab);
+    if (search.tab) setTab(search.tab as Tab);
   }, [search.tab]);
 
   const reload = useCallback(() => {

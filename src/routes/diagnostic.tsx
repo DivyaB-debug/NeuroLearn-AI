@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
 import { generateDiagnostic } from "@/lib/learning.functions";
 import { TECHNIQUES, type TechniqueId } from "@/lib/ai-gateway";
 import { toast } from "sonner";

@@ -1,14 +1,14 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { google } from "@ai-sdk/google";
 
-export const createLovableAiGatewayProvider = (lovableApiKey: string) =>
-  createOpenAICompatible({
-    name: "lovable",
-    baseURL: "https://ai.gateway.lovable.dev/v1",
-    headers: {
-      "Lovable-API-Key": lovableApiKey,
-      "X-Lovable-AIG-SDK": "vercel-ai-sdk",
-    },
-  });
+export const getGoogleModel = () => {
+  const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!key) {
+    throw new Error(
+      "Missing GOOGLE_GENERATIVE_AI_API_KEY — add your Google AI Studio key to the environment."
+    );
+  }
+  return google("gemini-2.5-flash");
+};
 
 export const TECHNIQUES = [
   { id: "visual_storytelling", label: "Visual Storytelling", blurb: "A vivid scene you can picture in your head." },

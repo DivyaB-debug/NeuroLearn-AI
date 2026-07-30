@@ -60,7 +60,7 @@ function Learn() {
           <span className="hidden rounded-full bg-secondary px-3 py-1 text-muted-foreground sm:inline-flex">
             Style: <span className="ml-1 font-medium text-foreground">{tech.label}</span>
           </span>
-          <Link to="/sign" className="text-muted-foreground hover:text-foreground">Sign language</Link>
+          <Link to="/sign" search={{ text: undefined, tab: undefined }} className="text-muted-foreground hover:text-foreground">Sign language</Link>
           <Link to="/diagnostic" className="text-muted-foreground hover:text-foreground">Retake</Link>
           <button onClick={signOut} className="rounded-full border border-border px-3 py-1 text-muted-foreground hover:bg-secondary">Sign out</button>
         </div>
@@ -129,7 +129,7 @@ function Learn() {
                 <p className="text-xs uppercase tracking-widest text-accent">{tech.label}</p>
                 <Link
                   to="/sign"
-                  search={{ text: topic.trim().slice(0, 60), tab: "spell" as const }}
+                  search={{ text: topic.trim().slice(0, 60), tab: "avatar" as const }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
                 >
                   <Hand className="h-3 w-3" /> Sign this topic

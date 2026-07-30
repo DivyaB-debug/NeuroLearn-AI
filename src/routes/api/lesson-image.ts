@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 // Generates ONE illustration for a scene. Non-streaming, returns base64 PNG.
-// Kept small + fast so the client can fan-out 3-4 calls in parallel for a
-// story.
+// Uses OpenAI DALL-E directly so the app can run independently of Lovable AI Gateway.
 export const Route = createFileRoute("/api/lesson-image")({
   server: {
     handlers: {
@@ -15,31 +14,30 @@ export const Route = createFileRoute("/api/lesson-image")({
               headers: { "Content-Type": "application/json" },
             });
           }
-          const key = process.env.LOVABLE_API_KEY;
+
+          const key = process.env.OPENAI_API_KEY;
           if (!key) {
-            return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+            return new Response(JSON.stringify({ error: "OPENAI_API_KEY not configured" }), {
               status: 500,
               headers: { "Content-Type": "application/json" },
             });
           }
 
-          const upstream = await fetch(
-            "https://ai.gateway.lovable.dev/v1/images/generations",
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${key}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "openai/gpt-image-1-mini",
-                prompt: `Educational illustration, clean modern art style, vivid colors, clear focal subject, no text overlay. ${prompt}`,
-                size: "1024x1024",
-                quality: "low",
-                n: 1,
-              }),
-            }
-          );
+          const upstream = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${key}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "dall-e-3",
+              prompt: `Educational illustration, clean modern art style, vivid colors, clear focal subject, no text overlay. ${prompt}`,
+              size: "1024x1024",
+              quality: "standard",
+              response_format: "b64_json",
+              n: 1,
+            }),
+          });
 
           if (!upstream.ok) {
             const t = await upstream.text();
@@ -59,6 +57,7 @@ export const Route = createFileRoute("/api/lesson-image")({
               headers: { "Content-Type": "application/json" },
             });
           }
+
           return new Response(JSON.stringify({ b64 }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
