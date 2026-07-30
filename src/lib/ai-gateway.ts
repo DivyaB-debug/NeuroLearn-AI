@@ -7,7 +7,7 @@ export const getGoogleModel = () => {
       "Missing GOOGLE_GENERATIVE_AI_API_KEY — add your Google AI Studio key to the environment."
     );
   }
-  return google("gemini-2.5-flash", { apiKey: key });
+  return google("gemini-2.5-flash");
 };
 
 export const TECHNIQUES = [

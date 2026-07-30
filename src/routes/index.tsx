@@ -35,7 +35,7 @@ function Landing() {
           <span className="font-display text-xl font-semibold">NeuroLearnAI</span>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/sign" search={{ tab: "avatar" }} className="inline-flex rounded-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:px-4">
+          <Link to="/sign" search={{ tab: "avatar", text: undefined }} className="inline-flex rounded-full px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:px-4">
             ASL avatar
           </Link>
           <Link to="/auth" className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-secondary">
@@ -62,7 +62,7 @@ function Landing() {
               <Link to="/auth" className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 Know your way of learning →
               </Link>
-              <Link to="/sign" search={{ tab: "avatar" }} className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary">
+              <Link to="/sign" search={{ tab: "avatar", text: undefined }} className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary">
                 <Hand className="h-4 w-4" /> Learn with ASL avatar
               </Link>
               <a href="#how" className="rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary">
