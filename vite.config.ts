@@ -1,15 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 
-// Standard TanStack Start + Vite + React + Tailwind v4 config for Node/Render.
+// Standard TanStack Start + Nitro + Vite + React + Tailwind v4 config for Node/Render.
 // The custom SSR error wrapper lives in src/server.ts.
 export default defineConfig({
   plugins: [
     tailwindcss(),
     tanstackStart({ server: { entry: "server" } }),
+    nitro(),
     react(),
     tsConfigPaths(),
   ],
